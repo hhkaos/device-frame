@@ -884,6 +884,7 @@
     </main>
   </div>
 
+  <script src="./frames/config.js"></script>
   <script>
     /* ----------------------------------------------------------
       Mockup Generator (single file, vanilla JS)
@@ -899,46 +900,10 @@
     // Configuration
     // -------------------------
 
-    // Put your frame images in ./frames/ (same folder as index.html)
-    // and adjust these file names as needed.
-    const TEMPLATES = [
-      {
-        id: "desktop",
-        name: "Desktop frame",
-        src: "./frames/desktop.png",
-        // screen rect in *image pixels* (relative to the frame image natural size)
-        screen: { x: 120, y: 90, w: 1200, h: 760 },
-        screenRadius: 12
-      },
-      {
-        id: "laptop",
-        name: "Laptop frame",
-        src: "./frames/laptop.png",
-        screen: { x: 210, y: 120, w: 980, h: 640 },
-        screenRadius: 14
-      },
-      {
-        id: "iphone",
-        name: "Mobile iPhone frame",
-        src: "./frames/iphone.png",
-        screen: { x: 80, y: 110, w: 520, h: 1120 },
-        screenRadius: 36
-      },
-      {
-        id: "android",
-        name: "Mobile Android frame",
-        src: "./frames/android.png",
-        screen: { x: 75, y: 95, w: 560, h: 1180 },
-        screenRadius: 34
-      },
-      {
-        id: "ipad",
-        name: "Tablet iPad frame",
-        src: "./frames/ipad.png",
-        screen: { x: 120, y: 130, w: 900, h: 1200 },
-        screenRadius: 26
-      }
-    ];
+    const TEMPLATES = window.FRAME_TEMPLATES;
+    if(!Array.isArray(TEMPLATES) || TEMPLATES.length === 0){
+      throw new Error("Missing frame templates. Ensure ./frames/config.js is loaded.");
+    }
 
     const BG_PRESETS = [
       { id: "dark", name: "Dark", value: "#0b0f17" },
