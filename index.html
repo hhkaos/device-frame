@@ -1,0 +1,2387 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mockup Generator, Single File</title>
+
+  <style>
+    /* -----------------------------
+      Modern, clean UI (BrowserFrame-inspired)
+      No frameworks. Single file.
+    ------------------------------ */
+
+    :root{
+      --bg: #0b0f17;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.65);
+      --muted2: rgba(255,255,255,0.45);
+      --accent: #7c5cff;
+      --accent2: #22c55e;
+      --danger: #ef4444;
+
+      --preview-bg: #111827;
+      --checker-a: #e5e7eb;
+      --checker-b: #f3f4f6;
+
+      --radius: 16px;
+      --radius2: 22px;
+
+      --shadow-enabled: 1;
+      --shadow-x: 0px;
+      --shadow-y: 18px;
+      --shadow-blur: 40px;
+      --shadow-spread: 0px;
+      --shadow-alpha: 0.35;
+
+      --canvas-bg: #0b0f17; /* defaults to dark */
+      --device-scale: 1;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body { height: 100%; }
+    body{
+      margin: 0;
+      background: radial-gradient(1200px 600px at 20% 10%, rgba(124,92,255,0.20), transparent 60%),
+                  radial-gradient(900px 500px at 80% 30%, rgba(34,197,94,0.10), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      overflow: hidden;
+    }
+
+    a{ color: inherit; }
+
+    /* Layout */
+    .app{
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: 100vh;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .panel{
+      position: sticky;
+      top: 14px;
+      height: calc(100vh - 28px);
+      overflow: auto;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border-radius: var(--radius2);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      padding: 14px;
+    }
+
+    .panel::-webkit-scrollbar{ width: 10px; }
+    .panel::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.10); border-radius: 999px; }
+    .panel::-webkit-scrollbar-track{ background: transparent; }
+
+    .preview{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      border-radius: var(--radius2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .previewTopbar{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .logoDot{
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,0.35)) , var(--accent);
+      box-shadow: 0 0 0 5px rgba(124,92,255,0.15);
+      flex: 0 0 auto;
+    }
+    .brandTitle{
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brandSub{
+      color: var(--muted2);
+      font-size: 12px;
+      margin-left: 6px;
+    }
+
+    .topActions{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+    }
+
+    .btn{
+      appearance:none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 650;
+      font-size: 13px;
+      transition: transform .05s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.16); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: rgba(124,92,255,0.18);
+      border-color: rgba(124,92,255,0.35);
+    }
+    .btn.primary:hover{
+      background: rgba(124,92,255,0.25);
+      border-color: rgba(124,92,255,0.48);
+    }
+    .btn.danger{
+      background: rgba(239,68,68,0.14);
+      border-color: rgba(239,68,68,0.32);
+    }
+    .btn.danger:hover{
+      background: rgba(239,68,68,0.20);
+      border-color: rgba(239,68,68,0.45);
+    }
+    .btn.ghost{
+      background: transparent;
+    }
+
+    .canvasWrap{
+      height: calc(100% - 52px);
+      position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      overflow: auto;
+    }
+
+    /* Canvas background layer */
+    .canvas{
+      position: relative;
+      border-radius: 18px;
+      padding: 22px;
+      /* background changes by presets */
+      background: var(--canvas-bg);
+      min-width: 320px;
+      min-height: 240px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition: background .15s ease;
+    }
+    .canvas.transparent{
+      /* checkerboard */
+      background:
+        linear-gradient(45deg, var(--checker-a) 25%, transparent 25%, transparent 75%, var(--checker-a) 75%, var(--checker-a)) 0 0/24px 24px,
+        linear-gradient(45deg, var(--checker-a) 25%, transparent 25%, transparent 75%, var(--checker-a) 75%, var(--checker-a)) 12px 12px/24px 24px,
+        linear-gradient(0deg, var(--checker-b), var(--checker-b));
+    }
+
+    /* Device stage (frame + screen clipping) */
+    .deviceStage{
+      position: relative;
+      transform: scale(var(--device-scale));
+      transform-origin: center;
+      will-change: transform;
+    }
+
+    .deviceShadow{
+      filter: drop-shadow(
+        calc(var(--shadow-enabled) * var(--shadow-x))
+        calc(var(--shadow-enabled) * var(--shadow-y))
+        calc(var(--shadow-enabled) * var(--shadow-blur))
+        rgba(0,0,0,var(--shadow-alpha))
+      );
+      /* NOTE: drop-shadow cannot do spread, so spread is applied via a subtle pseudo shadow below */
+      position: relative;
+    }
+    .deviceShadow::after{
+      content:"";
+      position:absolute;
+      inset: 0;
+      pointer-events:none;
+      border-radius: 28px;
+      box-shadow:
+        0 0 0 calc(var(--shadow-enabled) * var(--shadow-spread)) rgba(0,0,0,0.18);
+      opacity: 0.9;
+      mix-blend-mode: multiply;
+    }
+
+    .frameImg{
+      display:block;
+      max-width: min(920px, calc(100vw - 440px));
+      max-height: min(820px, calc(100vh - 180px));
+      width: auto;
+      height: auto;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    /* Screen overlay that clips content */
+    .screen{
+      position:absolute;
+      overflow:hidden;
+      border-radius: 10px; /* adjustable by per-template if needed */
+      /* We'll set top/left/width/height via JS using the saved screen rect */
+      outline: 1px solid rgba(255,255,255,0.06);
+      background: #0b1220;
+    }
+
+    /* Content containers */
+    .screenInner{
+      position:absolute;
+      inset:0;
+    }
+
+    .screenInner iframe{
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #fff;
+      /* allow interaction */
+      pointer-events: auto;
+    }
+
+    .screenInner img{
+      width: 100%;
+      height: 100%;
+      display:block;
+      user-select:none;
+      -webkit-user-drag:none;
+      background: #111;
+    }
+    .adjustableImage{
+      cursor: grab;
+      will-change: transform;
+      transform-origin: center center;
+    }
+    .adjustableImage.dragging{
+      cursor: grabbing;
+    }
+    .fit-cover{ object-fit: cover; }
+    .fit-contain{ object-fit: contain; }
+
+    /* Drag-drop hint overlay */
+    .dropHint{
+      position:absolute;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding: 16px;
+      color: rgba(255,255,255,0.78);
+      background: rgba(17,24,39,0.55);
+      border: 1px dashed rgba(255,255,255,0.28);
+      border-radius: 12px;
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity .12s ease;
+    }
+    .dropHint.show{ opacity: 1; }
+
+    /* Selection rectangle UI for custom frame */
+    .rectEditor{
+      position:absolute;
+      border: 2px solid rgba(124,92,255,0.9);
+      box-shadow: 0 0 0 3px rgba(124,92,255,0.18);
+      border-radius: 10px;
+      pointer-events:auto;
+      touch-action: none;
+      cursor: move;
+      z-index: 4;
+    }
+    .rectEditor.resizingX,
+    .rectEditor.resizingXY{ cursor: default; }
+    .rectLabel{
+      position:absolute;
+      top: -28px;
+      left: 0;
+      padding: 5px 8px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.9);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      pointer-events:none;
+    }
+    .rectHandle{
+      position:absolute;
+      background: rgba(124,92,255,0.95);
+      border: 1px solid rgba(255,255,255,0.8);
+      border-radius: 999px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.28);
+    }
+    .rectHandleX{
+      width: 12px;
+      height: 48px;
+      right: -8px;
+      top: calc(50% - 24px);
+      cursor: ew-resize;
+    }
+    .rectHandleCorner{
+      width: 14px;
+      height: 14px;
+      right: -8px;
+      bottom: -8px;
+      cursor: nwse-resize;
+    }
+
+    /* Panel sections */
+    .section{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .section h3{
+      font-size: 13px;
+      margin: 0 0 10px 0;
+      color: rgba(255,255,255,0.88);
+      letter-spacing: 0.2px;
+    }
+    .section p{
+      margin: 8px 0 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+    .row.one{ grid-template-columns: 1fr; }
+    .row.three{ grid-template-columns: 1fr 1fr 1fr; }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], input[type="number"], select{
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.22);
+      color: var(--text);
+      outline: none;
+      font-size: 13px;
+    }
+    input[type="number"]{ padding-right: 8px; }
+
+    input[type="range"]{
+      width:100%;
+    }
+
+    .inline{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+
+    .pill{
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.86);
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+      user-select:none;
+      transition: background .15s ease, transform .05s ease;
+    }
+    .pill:hover{ background: rgba(255,255,255,0.10); }
+    .pill:active{ transform: translateY(1px); }
+    .pill.active{
+      border-color: rgba(124,92,255,0.5);
+      background: rgba(124,92,255,0.18);
+    }
+    .swatchGrid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .swatch{
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.14);
+      cursor:pointer;
+      position: relative;
+      overflow:hidden;
+    }
+    .swatch::after{
+      content:"";
+      position:absolute;
+      inset: 0;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+      pointer-events:none;
+    }
+    .swatch.active{
+      outline: 2px solid rgba(124,92,255,0.9);
+      outline-offset: 2px;
+    }
+
+    .notice{
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.20);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .toastWrap{
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 50;
+      pointer-events:none;
+    }
+    .toast{
+      pointer-events:none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.65);
+      color: rgba(255,255,255,0.92);
+      font-size: 12px;
+      max-width: 420px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+    }
+    .toast.error{
+      border-color: rgba(239,68,68,0.35);
+      background: rgba(127,29,29,0.55);
+    }
+    .toast.success{
+      border-color: rgba(34,197,94,0.35);
+      background: rgba(20,83,45,0.55);
+    }
+
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.82);
+      display:inline-block;
+    }
+
+    .small{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,0.10);
+      margin: 10px 0;
+    }
+
+    .hintBox{
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(124,92,255,0.25);
+      background: rgba(124,92,255,0.08);
+      color: rgba(255,255,255,0.82);
+      font-size: 12px;
+      line-height: 1.35;
+      margin-top: 10px;
+    }
+
+    /* Mobile layout */
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .app{
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .panel{
+        position: relative;
+        height: auto;
+      }
+      .frameImg{
+        max-width: min(920px, calc(100vw - 70px));
+        max-height: min(820px, calc(100vh - 220px));
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Left sticky panel -->
+    <aside class="panel" id="panel">
+      <div class="section">
+        <h3>Mockup Generator</h3>
+        <p>
+          Load a <b>URL (iframe)</b> or <b>image</b> and render it inside a device frame.
+          Drag and drop an image over the device screen in <b>Image mode</b>.
+        </p>
+        <div class="notice">
+          <b>Export note:</b> Exporting to PNG works reliably for image content.
+          If you load a URL in an iframe, browsers block pixel capture of cross-origin iframes,
+          so export will fallback to a screenshot warning.
+        </div>
+      </div>
+
+      <div class="section" id="presetsSection">
+        <h3>Presets</h3>
+
+        <div class="row one">
+          <div>
+            <label for="presetSelect">Saved presets</label>
+            <select id="presetSelect"></select>
+          </div>
+        </div>
+
+        <div class="row one">
+          <div class="inline">
+            <button class="btn primary" id="btnLoadPreset" type="button">Load preset</button>
+            <button class="btn danger" id="btnDeletePreset" type="button">Delete</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row one">
+          <div>
+            <label for="presetName">New preset name</label>
+            <input id="presetName" type="text" placeholder="e.g. iPhone, pastel mint, soft shadow" />
+          </div>
+        </div>
+
+        <div class="row one">
+          <div class="inline">
+            <button class="btn" id="btnSavePreset" type="button">Save as new preset</button>
+            <button class="btn ghost" id="btnOverwritePreset" type="button" title="Overwrite the selected preset with current values">Overwrite selected</button>
+          </div>
+        </div>
+
+        <p class="small">Presets are stored in localStorage in this browser.</p>
+      </div>
+
+      <div class="section">
+        <h3>1) Device Frame</h3>
+        <div class="row one">
+          <div>
+            <label for="templateSelect">Template</label>
+            <select id="templateSelect"></select>
+          </div>
+        </div>
+
+        <p class="small">
+          Templates load frame images from your local folder.
+          Put images in <span class="kbd">./frames/</span> and adjust paths in the JS config.
+        </p>
+      </div>
+
+      <div class="section" id="customFrameSection">
+        <h3>2) Custom Frame (Upload)</h3>
+
+        <div class="row one">
+          <div class="inline">
+            <button class="btn" id="btnUseCustomFrame" type="button">Activate Manual Adjust</button>
+            <button class="btn ghost" id="btnUseTemplate" type="button" title="Switch back to the selected template">Use Template Rect</button>
+          </div>
+        </div>
+
+        <div class="row one">
+          <div>
+            <label for="customFrameFile">Upload frame image (PNG/JPG)</label>
+            <input id="customFrameFile" type="file" accept="image/*" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="screenX">Screen X</label>
+            <input id="screenX" type="number" min="0" step="1" />
+          </div>
+          <div>
+            <label for="screenY">Screen Y</label>
+            <input id="screenY" type="number" min="0" step="1" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="screenW">Screen Width</label>
+            <input id="screenW" type="number" min="1" step="1" />
+          </div>
+          <div>
+            <label for="screenH">Screen Height</label>
+            <input id="screenH" type="number" min="1" step="1" />
+          </div>
+        </div>
+
+        <div class="row one">
+        <div>
+          <label for="screenRadius">Screen corner radius</label>
+          <input id="screenRadius" type="range" min="0" max="80" step="1" />
+          <div class="small"><span id="screenRadiusLabel"></span></div>
+        </div>
+      </div>
+
+        <div class="row one">
+          <div class="inline">
+            <button class="btn primary" id="btnApplyScreenRect" type="button">Apply Screen Rect</button>
+            <button class="btn" id="btnFitRectToTemplate" type="button" title="Load the current template default screen rectangle">Load Default Rect</button>
+          </div>
+        </div>
+
+        <div class="hintBox">
+          <b>How to adjust the screen area:</b><br/>
+          1) Upload a frame image, then start with <b>Load Default Rect</b> (or edit values).<br/>
+          2) The purple rectangle on the preview shows where your content will be clipped.<br/>
+          3) Tweak X, Y, Width, Height until the rectangle matches the visible screen.
+        </div>
+
+        <p class="small">
+          Custom frame and screen rectangle are saved to <b>localStorage</b>.
+        </p>
+      </div>
+
+      <div class="section">
+        <h3>3) Content</h3>
+
+        <div class="row one">
+          <div class="inline">
+            <span class="pill" id="modeUrl">URL Mode</span>
+            <span class="pill" id="modeImage">Image Mode</span>
+          </div>
+        </div>
+
+        <div id="urlControls">
+          <div class="row one">
+            <div>
+              <label for="urlInput">URL</label>
+              <input id="urlInput" type="text" placeholder="https://example.com" />
+            </div>
+          </div>
+          <div class="row one">
+            <div class="inline">
+              <button class="btn primary" id="btnLoadUrl" type="button">Load</button>
+              <button class="btn" id="btnClearContent" type="button">Clear</button>
+            </div>
+          </div>
+
+          <p class="small">
+            Tip: some sites block embedding in iframes (X-Frame-Options / CSP).
+            If a site refuses to load, try a different URL.
+          </p>
+        </div>
+
+        <div id="imageControls">
+          <div class="row one">
+            <div>
+              <label>Upload image</label>
+              <input id="contentImageFile" type="file" accept="image/*" />
+            </div>
+          </div>
+
+          <div class="row one">
+            <div>
+              <label>Image fit</label>
+              <div class="inline">
+                <span class="pill" id="fitCover">Cover</span>
+                <span class="pill" id="fitContain">Contain</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="row one">
+            <div>
+              <label for="imageScaleRange">Image scale</label>
+              <input id="imageScaleRange" type="range" min="20" max="800" step="1" />
+              <div class="small"><span id="imageScaleLabel"></span></div>
+            </div>
+          </div>
+
+          <div class="row one">
+            <div class="inline">
+              <button class="btn ghost" id="btnResetImageTransform" type="button">Reset Image Position/Scale</button>
+            </div>
+          </div>
+
+          <p class="small">
+            Drag and drop an image directly onto the device screen.
+          </p>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>4) Background</h3>
+        <div class="swatchGrid" id="bgSwatches"></div>
+
+        <div class="divider"></div>
+
+        <div class="row one">
+          <div>
+            <label for="bgColorPicker">Custom color</label>
+            <input id="bgColorPicker" type="color" value="#0b0f17" />
+          </div>
+        </div>
+
+        <div class="row one">
+          <div>
+            <label for="scaleRange">Device scale</label>
+            <input id="scaleRange" type="range" min="0.4" max="1.6" step="0.01" />
+            <div class="small"><span id="scaleLabel"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>5) Drop Shadow</h3>
+
+        <div class="row one">
+          <div class="inline">
+            <label style="margin:0;">
+              <input id="shadowToggle" type="checkbox" />
+              <span style="margin-left:8px;color:var(--muted);font-size:12px;">Enable shadow</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="row two">
+          <div>
+            <label for="shadowBlur">Blur</label>
+            <input id="shadowBlur" type="range" min="0" max="120" step="1" />
+            <div class="small"><span id="shadowBlurLabel"></span></div>
+          </div>
+          <div>
+            <label for="shadowOpacity">Opacity</label>
+            <input id="shadowOpacity" type="range" min="0" max="1" step="0.01" />
+            <div class="small"><span id="shadowOpacityLabel"></span></div>
+          </div>
+        </div>
+
+        <div class="row two">
+          <div>
+            <label for="shadowX">Offset X</label>
+            <input id="shadowX" type="range" min="-80" max="80" step="1" />
+            <div class="small"><span id="shadowXLabel"></span></div>
+          </div>
+          <div>
+            <label for="shadowY">Offset Y</label>
+            <input id="shadowY" type="range" min="-80" max="80" step="1" />
+            <div class="small"><span id="shadowYLabel"></span></div>
+          </div>
+        </div>
+
+        <div class="row one">
+          <div>
+            <label for="shadowSpread">Spread (approx)</label>
+            <input id="shadowSpread" type="range" min="0" max="40" step="1" />
+            <div class="small"><span id="shadowSpreadLabel"></span></div>
+          </div>
+        </div>
+
+        <p class="small">
+          Spread is approximated via an extra box-shadow layer.
+        </p>
+      </div>
+
+      <div class="section">
+        <h3>6) Actions</h3>
+        <div class="row one">
+          <div class="inline">
+            <button class="btn danger" id="btnReset" type="button">Reset</button>
+            <button class="btn primary" id="btnExport" type="button">Export PNG</button>
+          </div>
+        </div>
+
+        <p class="small">
+          Shortcut: press <span class="kbd">R</span> to reset (when not typing in an input).
+        </p>
+      </div>
+    </aside>
+
+    <!-- Right preview area -->
+    <main class="preview">
+      <div class="previewTopbar">
+        <div class="brand">
+          <span class="logoDot"></span>
+          <div class="brandTitle">Preview</div>
+          <div class="brandSub" id="statusText">Ready</div>
+        </div>
+        <div class="topActions">
+          <button class="btn" id="btnCenter" type="button" title="Center the device in view">Center</button>
+        </div>
+      </div>
+
+      <div class="canvasWrap" id="canvasWrap">
+        <div class="canvas" id="canvas">
+          <div class="deviceStage" id="deviceStage">
+            <div class="deviceShadow" id="deviceShadow">
+              <img id="frameImg" class="frameImg" alt="Device frame" />
+              <div class="screen" id="screen">
+                <div class="screenInner" id="screenInner">
+                  <!-- either iframe or img injected here -->
+                </div>
+                <div class="dropHint" id="dropHint">
+                  <div>
+                    <div style="font-weight:800;font-size:14px;margin-bottom:6px;">Drop an image here</div>
+                    <div style="color:rgba(255,255,255,0.7);font-size:12px;">
+                      Or use the <b>Upload image</b> button in the panel.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Visible rectangle editor overlay (for custom screen rect calibration) -->
+              <div class="rectEditor" id="rectEditor" style="display:none;">
+                <div class="rectLabel" id="rectLabel">Screen Area</div>
+                <div class="rectHandle rectHandleX" id="rectHandleX" title="Resize width"></div>
+                <div class="rectHandle rectHandleCorner" id="rectHandleCorner" title="Resize width and height"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toastWrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ----------------------------------------------------------
+      Mockup Generator (single file, vanilla JS)
+      - Templates served from ./frames/
+      - Custom frame upload + screen rect saved to localStorage
+      - URL mode (iframe) + Image mode (drag & drop / upload)
+      - Background presets + custom color
+      - Shadow controls (live)
+      - Export PNG (works for image content; iframes are restricted)
+    ----------------------------------------------------------- */
+
+    // -------------------------
+    // Configuration
+    // -------------------------
+
+    // Put your frame images in ./frames/ (same folder as index.html)
+    // and adjust these file names as needed.
+    const TEMPLATES = [
+      {
+        id: "desktop",
+        name: "Desktop frame",
+        src: "./frames/desktop.png",
+        // screen rect in *image pixels* (relative to the frame image natural size)
+        screen: { x: 120, y: 90, w: 1200, h: 760 },
+        screenRadius: 12
+      },
+      {
+        id: "laptop",
+        name: "Laptop frame",
+        src: "./frames/laptop.png",
+        screen: { x: 210, y: 120, w: 980, h: 640 },
+        screenRadius: 14
+      },
+      {
+        id: "iphone",
+        name: "Mobile iPhone frame",
+        src: "./frames/iphone.png",
+        screen: { x: 80, y: 110, w: 520, h: 1120 },
+        screenRadius: 36
+      },
+      {
+        id: "android",
+        name: "Mobile Android frame",
+        src: "./frames/android.png",
+        screen: { x: 75, y: 95, w: 560, h: 1180 },
+        screenRadius: 34
+      },
+      {
+        id: "ipad",
+        name: "Tablet iPad frame",
+        src: "./frames/ipad.png",
+        screen: { x: 120, y: 130, w: 900, h: 1200 },
+        screenRadius: 26
+      }
+    ];
+
+    const BG_PRESETS = [
+      { id: "dark", name: "Dark", value: "#0b0f17" },
+      { id: "chroma", name: "Chroma Green", value: "#00FF00" },
+      { id: "pastel1", name: "Pastel Lavender", value: "#E9D5FF" },
+      { id: "pastel2", name: "Pastel Mint", value: "#D1FAE5" },
+      { id: "pastel3", name: "Pastel Peach", value: "#FFEDD5" },
+      { id: "pastel4", name: "Pastel Sky", value: "#DBEAFE" },
+      { id: "pastel5", name: "Pastel Rose", value: "#FFE4E6" },
+      { id: "warm", name: "Warm Sand", value: "#F5F5DC" },
+      { id: "transparent", name: "Transparent", value: "transparent" }
+    ];
+
+    const LS_KEY = "mockup_generator_state_v1";
+    const LS_PRESETS_KEY = "mockup_generator_presets_v1";
+
+
+    // -------------------------
+    // State
+    // -------------------------
+    const state = {
+      usingCustomFrame: false,
+
+      templateId: "desktop",
+
+      // If custom frame is used, we store dataURL (small frames recommended)
+      customFrameDataUrl: null,
+
+      // screen rect refers to the currently active frame image's natural size
+      screenRect: { x: 120, y: 90, w: 1200, h: 760 },
+      screenRadius: 12,
+
+      mode: "url", // "url" or "image"
+      url: "",
+      imageDataUrl: null,
+      imageFit: "cover", // cover or contain
+      imageTransform: { x: 0, y: 0, scale: 1 },
+
+      bgPresetId: "dark",
+      bgCustom: "#0b0f17",
+
+      scale: 1,
+
+      shadow: {
+        enabled: true,
+        blur: 40,
+        opacity: 0.35,
+        x: 0,
+        y: 18,
+        spread: 0
+      }
+    };
+
+    // -------------------------
+    // DOM
+    // -------------------------
+    const els = {
+      templateSelect: document.getElementById("templateSelect"),
+      btnUseCustomFrame: document.getElementById("btnUseCustomFrame"),
+      btnUseTemplate: document.getElementById("btnUseTemplate"),
+
+      customFrameSection: document.getElementById("customFrameSection"),
+      customFrameFile: document.getElementById("customFrameFile"),
+      screenX: document.getElementById("screenX"),
+      screenY: document.getElementById("screenY"),
+      screenW: document.getElementById("screenW"),
+      screenH: document.getElementById("screenH"),
+      btnApplyScreenRect: document.getElementById("btnApplyScreenRect"),
+      btnFitRectToTemplate: document.getElementById("btnFitRectToTemplate"),
+
+      modeUrl: document.getElementById("modeUrl"),
+      modeImage: document.getElementById("modeImage"),
+      urlControls: document.getElementById("urlControls"),
+      imageControls: document.getElementById("imageControls"),
+      urlInput: document.getElementById("urlInput"),
+      btnLoadUrl: document.getElementById("btnLoadUrl"),
+      btnClearContent: document.getElementById("btnClearContent"),
+
+      contentImageFile: document.getElementById("contentImageFile"),
+      fitCover: document.getElementById("fitCover"),
+      fitContain: document.getElementById("fitContain"),
+      imageScaleRange: document.getElementById("imageScaleRange"),
+      imageScaleLabel: document.getElementById("imageScaleLabel"),
+      btnResetImageTransform: document.getElementById("btnResetImageTransform"),
+
+      bgSwatches: document.getElementById("bgSwatches"),
+      bgColorPicker: document.getElementById("bgColorPicker"),
+      scaleRange: document.getElementById("scaleRange"),
+      scaleLabel: document.getElementById("scaleLabel"),
+
+      shadowToggle: document.getElementById("shadowToggle"),
+      shadowBlur: document.getElementById("shadowBlur"),
+      shadowOpacity: document.getElementById("shadowOpacity"),
+      shadowX: document.getElementById("shadowX"),
+      shadowY: document.getElementById("shadowY"),
+      shadowSpread: document.getElementById("shadowSpread"),
+      shadowBlurLabel: document.getElementById("shadowBlurLabel"),
+      shadowOpacityLabel: document.getElementById("shadowOpacityLabel"),
+      shadowXLabel: document.getElementById("shadowXLabel"),
+      shadowYLabel: document.getElementById("shadowYLabel"),
+      shadowSpreadLabel: document.getElementById("shadowSpreadLabel"),
+
+      btnReset: document.getElementById("btnReset"),
+      btnExport: document.getElementById("btnExport"),
+      btnCenter: document.getElementById("btnCenter"),
+
+      canvasWrap: document.getElementById("canvasWrap"),
+      canvas: document.getElementById("canvas"),
+      deviceStage: document.getElementById("deviceStage"),
+      deviceShadow: document.getElementById("deviceShadow"),
+      frameImg: document.getElementById("frameImg"),
+      screen: document.getElementById("screen"),
+      screenInner: document.getElementById("screenInner"),
+      dropHint: document.getElementById("dropHint"),
+
+      rectEditor: document.getElementById("rectEditor"),
+      rectLabel: document.getElementById("rectLabel"),
+      rectHandleX: document.getElementById("rectHandleX"),
+      rectHandleCorner: document.getElementById("rectHandleCorner"),
+
+      toastWrap: document.getElementById("toastWrap"),
+      statusText: document.getElementById("statusText"),
+
+      presetSelect: document.getElementById("presetSelect"),
+      btnLoadPreset: document.getElementById("btnLoadPreset"),
+      btnDeletePreset: document.getElementById("btnDeletePreset"),
+      presetName: document.getElementById("presetName"),
+      btnSavePreset: document.getElementById("btnSavePreset"),
+      btnOverwritePreset: document.getElementById("btnOverwritePreset"),
+
+      screenRadius: document.getElementById("screenRadius"),
+      screenRadiusLabel: document.getElementById("screenRadiusLabel"),
+
+    };
+
+    // -------------------------
+    // Utilities
+    // -------------------------
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    function toast(message, type="info", timeout=2600){
+      const div = document.createElement("div");
+      div.className = "toast" + (type === "error" ? " error" : type === "success" ? " success" : "");
+      div.textContent = message;
+      els.toastWrap.appendChild(div);
+      setTimeout(() => {
+        div.style.opacity = "0";
+        div.style.transform = "translateY(4px)";
+        div.style.transition = "opacity .2s ease, transform .2s ease";
+        setTimeout(()=> div.remove(), 260);
+      }, timeout);
+    }
+
+    function setStatus(text){
+      els.statusText.textContent = text;
+    }
+
+    function isValidUrl(str){
+      try{
+        const u = new URL(str);
+        return u.protocol === "http:" || u.protocol === "https:";
+      }catch(e){
+        return false;
+      }
+    }
+
+    function readFileAsDataURL(file){
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(new Error("Failed to read file"));
+        r.readAsDataURL(file);
+      });
+    }
+
+    function loadImage(src){
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Failed to load image: " + src));
+        img.src = src;
+      });
+    }
+
+    function loadPresets(){
+      try{
+        return JSON.parse(localStorage.getItem(LS_PRESETS_KEY) || "[]");
+      }catch(e){
+        return [];
+      }
+    }
+
+    function savePresets(presets){
+      localStorage.setItem(LS_PRESETS_KEY, JSON.stringify(presets));
+    }
+
+    function getUniquePresetName(baseName, presets){
+      const raw = (baseName || "").trim() || "Untitled preset";
+      const exists = (name) => presets.some(p => p.name.toLowerCase() === name.toLowerCase());
+      if(!exists(raw)) return raw;
+      let i = 2;
+      while(exists(`${raw} (${i})`)) i++;
+      return `${raw} (${i})`;
+    }
+
+    function getPresetFromState(){
+      const copy = JSON.parse(JSON.stringify(state));
+
+      // Recommended: do NOT persist big data URLs in presets
+      copy.imageDataUrl = null;
+      copy.customFrameDataUrl = null;
+
+      return copy;
+    }
+
+    function renderPresets(){
+      const presets = loadPresets();
+      const prevSelected = els.presetSelect.value;
+      els.presetSelect.innerHTML = "";
+
+      if(!presets.length){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No presets yet";
+        els.presetSelect.appendChild(opt);
+        els.presetSelect.disabled = true;
+        return;
+      }
+
+      els.presetSelect.disabled = false;
+
+      for(const p of presets){
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        els.presetSelect.appendChild(opt);
+      }
+
+      if(prevSelected && presets.some(p => p.id === prevSelected)){
+        els.presetSelect.value = prevSelected;
+      }
+    }
+
+    function loadSelectedPreset(){
+      const id = els.presetSelect.value;
+      if(!id){
+        toast("No preset selected.", "error");
+        return false;
+      }
+      const presets = loadPresets();
+      const p = presets.find(x => x.id === id);
+      if(!p){
+        toast("Preset not found.", "error");
+        return false;
+      }
+
+      applyPresetToState(p.state);
+      setStatus("Preset loaded");
+      toast("Preset loaded.", "success");
+      renderAll();
+      saveState(); // keep "last session" consistent with the loaded preset
+      return true;
+    }
+
+
+    function applyPresetToState(presetState){
+      // Keep defaults, then overwrite
+      const parsed = presetState || {};
+      Object.assign(state, parsed);
+
+      // Ensure nested defaults still exist
+      state.shadow = Object.assign({ enabled:true, blur:40, opacity:0.35, x:0, y:18, spread:0 }, parsed.shadow || {});
+      state.screenRect = Object.assign({ x:120, y:90, w:1200, h:760 }, parsed.screenRect || {});
+      state.screenRadius = typeof parsed.screenRadius === "number" ? parsed.screenRadius : state.screenRadius;
+      state.imageTransform = Object.assign({ x:0, y:0, scale:1 }, parsed.imageTransform || {});
+
+      // Safety: do not auto-enable custom frame without data
+      if(state.usingCustomFrame && !state.customFrameDataUrl){
+        state.usingCustomFrame = false;
+      }
+    }
+
+
+    // Compute current displayed frame size and map "natural image pixels" to "CSS pixels".
+    function getFrameScale(){
+      const rect = els.frameImg.getBoundingClientRect();
+      const naturalW = els.frameImg.naturalWidth || 1;
+      const naturalH = els.frameImg.naturalHeight || 1;
+      return {
+        cssW: rect.width,
+        cssH: rect.height,
+        naturalW,
+        naturalH,
+        sx: rect.width / naturalW,
+        sy: rect.height / naturalH
+      };
+    }
+
+    function saveState(){
+      try{
+        localStorage.setItem(LS_KEY, JSON.stringify(state));
+      }catch(e){
+        // ignore
+      }
+    }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return;
+        const parsed = JSON.parse(raw);
+
+        // Shallow merge with defaults
+        Object.assign(state, parsed);
+
+        // Ensure nested objects exist
+        state.shadow = Object.assign({ enabled:true, blur:40, opacity:0.35, x:0, y:18, spread:0 }, parsed.shadow || {});
+        state.screenRect = Object.assign({ x:120, y:90, w:1200, h:760 }, parsed.screenRect || {});
+        state.imageTransform = Object.assign({ x:0, y:0, scale:1 }, parsed.imageTransform || {});
+      }catch(e){
+        // ignore
+      }
+    }
+
+    function normalizeImageTransform(){
+      if(!state.imageTransform || typeof state.imageTransform !== "object"){
+        state.imageTransform = { x:0, y:0, scale:1 };
+      }
+      state.imageTransform.x = Number.isFinite(state.imageTransform.x) ? state.imageTransform.x : 0;
+      state.imageTransform.y = Number.isFinite(state.imageTransform.y) ? state.imageTransform.y : 0;
+      state.imageTransform.scale = clamp(
+        Number.isFinite(state.imageTransform.scale) ? state.imageTransform.scale : 1,
+        0.2,
+        8
+      );
+    }
+
+    function resetImageTransform(){
+      state.imageTransform = { x:0, y:0, scale:1 };
+    }
+
+    function getImageTransformStyle(){
+      normalizeImageTransform();
+      const t = state.imageTransform;
+      return `translate(${Math.round(t.x)}px, ${Math.round(t.y)}px) scale(${t.scale})`;
+    }
+
+    function syncImageScaleControls(){
+      normalizeImageTransform();
+      const pct = Math.round(state.imageTransform.scale * 100);
+      els.imageScaleRange.value = String(clamp(pct, 20, 800));
+      els.imageScaleLabel.textContent = `${pct}%`;
+    }
+
+    function applyImageTransformToDom(){
+      const img = els.screenInner.querySelector("img.adjustableImage");
+      if(img){
+        img.style.transform = getImageTransformStyle();
+      }
+      syncImageScaleControls();
+    }
+
+    function resetState(){
+      localStorage.removeItem(LS_KEY);
+
+      state.usingCustomFrame = false;
+      state.templateId = "desktop";
+      state.customFrameDataUrl = null;
+
+      const t = TEMPLATES.find(x => x.id === "desktop") || TEMPLATES[0];
+      state.screenRect = { ...t.screen };
+      state.screenRadius = t.screenRadius;
+
+      state.mode = "url";
+      state.url = "";
+      state.imageDataUrl = null;
+      state.imageFit = "cover";
+      resetImageTransform();
+
+      state.bgPresetId = "dark";
+      state.bgCustom = "#0b0f17";
+
+      state.scale = 1;
+
+      state.shadow = { enabled:true, blur:40, opacity:0.35, x:0, y:18, spread:0 };
+
+      toast("Reset to defaults", "success");
+      setStatus("Reset");
+      renderAll();
+      saveState();
+    }
+
+    // -------------------------
+    // Rendering
+    // -------------------------
+    function renderTemplateOptions(){
+      els.templateSelect.innerHTML = "";
+      for(const t of TEMPLATES){
+        const opt = document.createElement("option");
+        opt.value = t.id;
+        opt.textContent = t.name;
+        els.templateSelect.appendChild(opt);
+      }
+      els.templateSelect.value = state.templateId;
+    }
+
+    function renderModePills(){
+      const isUrl = state.mode === "url";
+      els.modeUrl.classList.toggle("active", isUrl);
+      els.modeImage.classList.toggle("active", !isUrl);
+      els.urlControls.style.display = isUrl ? "" : "none";
+      els.imageControls.style.display = !isUrl ? "" : "none";
+
+      // Drag-drop hint only relevant in image mode
+      els.dropHint.classList.toggle("show", !isUrl && !state.imageDataUrl);
+    }
+
+    function renderFitPills(){
+      els.fitCover.classList.toggle("active", state.imageFit === "cover");
+      els.fitContain.classList.toggle("active", state.imageFit === "contain");
+    }
+
+    function renderBgSwatches(){
+      els.bgSwatches.innerHTML = "";
+      for(const p of BG_PRESETS){
+        const d = document.createElement("div");
+        d.className = "swatch";
+        d.title = p.name;
+        if(p.id === "transparent"){
+          d.style.background =
+            "linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%, #e5e7eb) 0 0/18px 18px, " +
+            "linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%, #e5e7eb) 9px 9px/18px 18px, " +
+            "linear-gradient(0deg, #f3f4f6, #f3f4f6)";
+        }else{
+          d.style.background = p.value;
+        }
+        d.classList.toggle("active", state.bgPresetId === p.id);
+        d.addEventListener("click", () => {
+          state.bgPresetId = p.id;
+          // If not transparent, sync custom picker to preset value
+          if(p.id !== "transparent"){
+            state.bgCustom = p.value;
+            els.bgColorPicker.value = safeHex(p.value, "#0b0f17");
+          }
+          applyCanvasBackground();
+          renderBgSwatches();
+          saveState();
+        });
+        els.bgSwatches.appendChild(d);
+      }
+    }
+
+    function safeHex(val, fallback){
+      // accept #RRGGBB
+      if(typeof val === "string" && /^#[0-9a-fA-F]{6}$/.test(val)) return val;
+      return fallback;
+    }
+
+    function applyCanvasBackground(){
+      const preset = BG_PRESETS.find(x => x.id === state.bgPresetId);
+      if(preset && preset.id === "transparent"){
+        els.canvas.classList.add("transparent");
+        document.documentElement.style.setProperty("--canvas-bg", "transparent");
+      } else {
+        els.canvas.classList.remove("transparent");
+        document.documentElement.style.setProperty("--canvas-bg", state.bgCustom || "#0b0f17");
+      }
+    }
+
+    function applyScale(){
+      document.documentElement.style.setProperty("--device-scale", String(state.scale));
+      els.scaleRange.value = String(state.scale);
+      els.scaleLabel.textContent = `${Math.round(state.scale * 100)}%`;
+    }
+
+    function applyShadow(){
+      document.documentElement.style.setProperty("--shadow-enabled", state.shadow.enabled ? "1" : "0");
+      document.documentElement.style.setProperty("--shadow-x", state.shadow.x + "px");
+      document.documentElement.style.setProperty("--shadow-y", state.shadow.y + "px");
+      document.documentElement.style.setProperty("--shadow-blur", state.shadow.blur + "px");
+      document.documentElement.style.setProperty("--shadow-spread", state.shadow.spread + "px");
+      document.documentElement.style.setProperty("--shadow-alpha", String(state.shadow.opacity));
+
+      els.shadowToggle.checked = !!state.shadow.enabled;
+
+      els.shadowBlur.value = String(state.shadow.blur);
+      els.shadowOpacity.value = String(state.shadow.opacity);
+      els.shadowX.value = String(state.shadow.x);
+      els.shadowY.value = String(state.shadow.y);
+      els.shadowSpread.value = String(state.shadow.spread);
+
+      els.shadowBlurLabel.textContent = `${state.shadow.blur}px`;
+      els.shadowOpacityLabel.textContent = `${Math.round(state.shadow.opacity * 100)}%`;
+      els.shadowXLabel.textContent = `${state.shadow.x}px`;
+      els.shadowYLabel.textContent = `${state.shadow.y}px`;
+      els.shadowSpreadLabel.textContent = `${state.shadow.spread}px`;
+    }
+
+    function syncRectInputs(){
+      els.screenX.value = state.screenRect.x;
+      els.screenY.value = state.screenRect.y;
+      els.screenW.value = state.screenRect.w;
+      els.screenH.value = state.screenRect.h;
+    }
+
+    function showRectEditor(show){
+      els.rectEditor.style.display = show ? "" : "none";
+    }
+
+    async function applyFrameSource(){
+      // Determine frame image source and default rect/radius
+      const template = TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
+
+      let src = template.src;
+      let screen = template.screen;
+      let radius = template.screenRadius;
+
+      if(state.usingCustomFrame && state.customFrameDataUrl){
+        src = state.customFrameDataUrl;
+        // keep state.screenRect as the custom rect
+        radius = state.screenRadius ?? 12;
+      } else {
+        // if using template, keep rect synced to state unless user changed it.
+        // We'll not override state.screenRect automatically, except when template changes (handled elsewhere).
+        radius = template.screenRadius;
+      }
+
+      // Load the frame image so natural sizes are known
+      try{
+        els.frameImg.src = src;
+        await els.frameImg.decode?.(); // modern browsers
+      }catch(e){
+        // decode might fail in some browsers, fallback:
+        // We'll still rely on onload handler below
+      }
+
+      // Set screen radius
+      applyScreenRadius()
+    }
+
+    function positionScreen(){
+      // Map screen rect from natural pixels to CSS pixels
+      const s = getFrameScale();
+      const r = state.screenRect;
+
+      const left = r.x * s.sx;
+      const top  = r.y * s.sy;
+      const w    = r.w * s.sx;
+      const h    = r.h * s.sy;
+
+      els.screen.style.left = left + "px";
+      els.screen.style.top = top + "px";
+      els.screen.style.width = w + "px";
+      els.screen.style.height = h + "px";
+
+      // Rect editor overlay (visible guide)
+      els.rectEditor.style.left = left + "px";
+      els.rectEditor.style.top = top + "px";
+      els.rectEditor.style.width = w + "px";
+      els.rectEditor.style.height = h + "px";
+      els.rectLabel.textContent = `Screen Area (${r.x}, ${r.y}, ${r.w}×${r.h})`;
+    }
+
+    function clampScreenRectToFrame(rect){
+      const s = getFrameScale();
+      const maxW = Math.max(1, s.naturalW);
+      const maxH = Math.max(1, s.naturalH);
+
+      const x = clamp(Math.round(rect.x), 0, maxW - 1);
+      const y = clamp(Math.round(rect.y), 0, maxH - 1);
+      const w = clamp(Math.round(rect.w), 1, maxW - x);
+      const h = clamp(Math.round(rect.h), 1, maxH - y);
+
+      return { x, y, w, h };
+    }
+
+    function renderContent(){
+      els.screenInner.innerHTML = "";
+
+      if(state.mode === "url"){
+        if(state.url){
+          const iframe = document.createElement("iframe");
+          iframe.src = state.url;
+          iframe.allow = "clipboard-read; clipboard-write; fullscreen; geolocation *; microphone *; camera *";
+          iframe.loading = "eager";
+          // allow interaction
+          iframe.style.pointerEvents = "auto";
+          els.screenInner.appendChild(iframe);
+        } else {
+          // empty state for URL mode
+          const div = document.createElement("div");
+          div.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.65);font-size:12px;text-align:center;padding:14px;";
+          div.innerHTML = "Enter a URL and click <b>Load</b>.";
+          els.screenInner.appendChild(div);
+        }
+        els.dropHint.classList.remove("show");
+      } else {
+        if(state.imageDataUrl){
+          const img = document.createElement("img");
+          img.src = state.imageDataUrl;
+          img.className = `adjustableImage ${state.imageFit === "cover" ? "fit-cover" : "fit-contain"}`;
+          img.draggable = false;
+          img.style.transform = getImageTransformStyle();
+          img.title = "Drag to move. Use mouse wheel to zoom.";
+          els.screenInner.appendChild(img);
+          els.dropHint.classList.remove("show");
+        } else {
+          els.dropHint.classList.add("show");
+        }
+      }
+    }
+
+    function renderCustomFrameSection(){
+      // Always show the section, but make it clearer when it's active.
+      els.customFrameSection.style.opacity = state.usingCustomFrame ? "1" : "0.92";
+      els.btnUseCustomFrame.textContent = state.usingCustomFrame ? "Manual Adjust Active" : "Activate Manual Adjust";
+      els.btnUseCustomFrame.classList.toggle("primary", state.usingCustomFrame);
+      showRectEditor(state.usingCustomFrame); // show guide when custom is active
+      syncRectInputs();
+    }
+
+    function getActiveScreenRadius(){
+        // If user has set a value, use state.screenRadius.
+        // If not set, fallback to the template default.
+        const t = TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
+        const fallback = t?.screenRadius ?? 12;
+
+        // allow 0 for straight corners
+        return (typeof state.screenRadius === "number") ? state.screenRadius : fallback;
+      }
+
+      function applyScreenRadius(){
+        const r = getActiveScreenRadius();
+        els.screen.style.borderRadius = r + "px";
+        // Keep the manual editor overlay visually in sync with the real clipping radius.
+        els.rectEditor.style.borderRadius = r + "px";
+        els.dropHint.style.borderRadius = r + "px";
+      }
+
+
+    function renderAll(){
+      renderTemplateOptions();
+      renderModePills();
+      renderFitPills();
+      renderBgSwatches();
+      applyCanvasBackground();
+      applyScale();
+      applyShadow();
+      renderCustomFrameSection();
+      renderPresets();
+      applyScreenRadius();
+      syncImageScaleControls();
+
+      els.screenRadius.value = String(getActiveScreenRadius());
+      els.screenRadiusLabel.textContent = `${getActiveScreenRadius()}px`;
+
+
+      // URL input sync
+      els.urlInput.value = state.url || "";
+      els.bgColorPicker.value = safeHex(state.bgCustom || "#0b0f17", "#0b0f17");
+
+      applyFrameSource().then(() => {
+        // position after image is loaded and laid out
+        requestAnimationFrame(() => {
+          positionScreen();
+        });
+      });
+
+      renderContent();
+    }
+
+    // Reposition on resize and after image load
+    function wireFrameLoad(){
+      els.frameImg.addEventListener("load", () => {
+        positionScreen();
+      });
+      window.addEventListener("resize", () => positionScreen());
+    }
+
+    // -------------------------
+    // Events
+    // -------------------------
+    function wireEvents(){
+      wireRectEditorInteractions();
+      wireImageTransformInteractions();
+
+      // Template selection
+      els.templateSelect.addEventListener("change", () => {
+        state.templateId = els.templateSelect.value;
+
+        // When changing template, apply its default rect unless using custom
+        if(!state.usingCustomFrame){
+          const t = TEMPLATES.find(x => x.id === state.templateId);
+          if(t){
+            state.screenRect = { ...t.screen };
+            state.screenRadius = t.screenRadius;
+          }
+        }
+        setStatus("Template changed");
+        renderAll();
+        saveState();
+      });
+
+      // Radius selector
+      els.screenRadius.addEventListener("input", () => {
+        state.screenRadius = parseInt(els.screenRadius.value, 10);
+        els.screenRadiusLabel.textContent = `${state.screenRadius}px`;
+        applyScreenRadius();
+        saveState();
+      });
+
+
+      // Preset buttons
+      els.btnSavePreset.addEventListener("click", () => {
+        const name = (els.presetName.value || "").trim();
+        if(!name){
+          toast("Please enter a preset name.", "error");
+          return;
+        }
+
+        const presets = loadPresets();
+
+        const uniqueName = getUniquePresetName(name, presets);
+        presets.unshift({
+          id: crypto?.randomUUID?.() || ("p_" + Date.now()),
+          name: uniqueName,
+          state: getPresetFromState(),
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        savePresets(presets);
+        toast(uniqueName === name ? "Preset saved." : `Preset saved as "${uniqueName}".`, "success");
+
+        els.presetName.value = "";
+        renderPresets();
+      });
+
+      els.btnOverwritePreset.addEventListener("click", () => {
+        const id = els.presetSelect.value;
+        if(!id){
+          toast("Select a preset to overwrite.", "error");
+          return;
+        }
+        const presets = loadPresets();
+        const p = presets.find(x => x.id === id);
+        if(!p){
+          toast("Preset not found.", "error");
+          return;
+        }
+        p.state = getPresetFromState();
+        p.updatedAt = Date.now();
+        savePresets(presets);
+        toast(`Preset "${p.name}" updated.`, "success");
+        setStatus("Preset overwritten");
+        renderPresets();
+        els.presetSelect.value = p.id;
+      });
+
+      els.btnLoadPreset.addEventListener("click", () => {
+        loadSelectedPreset();
+      });
+      els.presetSelect.addEventListener("change", () => {
+        loadSelectedPreset();
+      });
+
+      els.btnDeletePreset.addEventListener("click", () => {
+        const id = els.presetSelect.value;
+        if(!id) return;
+
+        const presets = loadPresets();
+        const next = presets.filter(p => p.id !== id);
+        savePresets(next);
+
+        toast("Preset deleted.", "success");
+        renderPresets();
+      });
+
+      // Use custom / template toggles
+      els.btnUseCustomFrame.addEventListener("click", () => {
+        state.usingCustomFrame = true;
+        if(!state.customFrameDataUrl){
+          toast("Upload a custom frame image to begin.", "info");
+        }
+        setStatus("Custom frame mode");
+        renderAll();
+        saveState();
+      });
+
+      els.btnUseTemplate.addEventListener("click", () => {
+        state.usingCustomFrame = false;
+        // when leaving custom mode, reset to template defaults for current template
+        const t = TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
+        state.screenRect = { ...t.screen };
+        state.screenRadius = t.screenRadius;
+        setStatus("Template mode");
+        renderAll();
+        saveState();
+      });
+
+      // Custom frame file
+      els.customFrameFile.addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+
+        try{
+          const dataUrl = await readFileAsDataURL(file);
+          state.customFrameDataUrl = dataUrl;
+          state.usingCustomFrame = true;
+
+          // If user hasn't customized rect yet, start from current template defaults
+          const t = TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
+          if(!state.screenRect || !state.screenRect.w){
+            state.screenRect = { ...t.screen };
+          }
+
+          setStatus("Custom frame loaded");
+          toast("Custom frame loaded. Adjust the screen rect if needed.", "success");
+          renderAll();
+          saveState();
+        }catch(err){
+          toast("Could not load that image.", "error");
+        }finally{
+          // allow re-upload same file if needed
+          e.target.value = "";
+        }
+      });
+
+      // Screen rect inputs
+      for(const el of [els.screenX, els.screenY, els.screenW, els.screenH]){
+        el.addEventListener("input", () => {
+          // live update guide rectangle as user types
+          state.screenRect = clampScreenRectToFrame({
+            x: Math.max(0, parseInt(els.screenX.value || "0", 10)),
+            y: Math.max(0, parseInt(els.screenY.value || "0", 10)),
+            w: Math.max(1, parseInt(els.screenW.value || "1", 10)),
+            h: Math.max(1, parseInt(els.screenH.value || "1", 10))
+          });
+          syncRectInputs();
+          positionScreen();
+          saveState();
+        });
+      }
+
+      els.btnApplyScreenRect.addEventListener("click", () => {
+        state.screenRect = clampScreenRectToFrame({
+          x: Math.max(0, parseInt(els.screenX.value || "0", 10)),
+          y: Math.max(0, parseInt(els.screenY.value || "0", 10)),
+          w: Math.max(1, parseInt(els.screenW.value || "1", 10)),
+          h: Math.max(1, parseInt(els.screenH.value || "1", 10))
+        });
+        syncRectInputs();
+        positionScreen();
+        toast("Screen rectangle applied.", "success");
+        setStatus("Screen rect applied");
+        saveState();
+      });
+
+      els.btnFitRectToTemplate.addEventListener("click", () => {
+        const t = TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
+        state.screenRect = { ...t.screen };
+        state.screenRadius = t.screenRadius;
+        syncRectInputs();
+        positionScreen();
+        toast("Loaded default screen rectangle for this template.", "success");
+        setStatus("Loaded default rect");
+        saveState();
+      });
+
+      // Modes
+      els.modeUrl.addEventListener("click", () => {
+        state.mode = "url";
+        setStatus("URL mode");
+        renderAll();
+        saveState();
+      });
+      els.modeImage.addEventListener("click", () => {
+        state.mode = "image";
+        setStatus("Image mode");
+        renderAll();
+        saveState();
+      });
+
+      // URL load
+      els.btnLoadUrl.addEventListener("click", () => {
+        const raw = (els.urlInput.value || "").trim();
+        if(!raw){
+          state.url = "";
+          toast("Please enter a URL.", "error");
+          setStatus("Missing URL");
+          renderAll();
+          saveState();
+          return;
+        }
+        if(!isValidUrl(raw)){
+          toast("That doesn't look like a valid URL. Use https://...", "error");
+          setStatus("Invalid URL");
+          return;
+        }
+        state.url = raw;
+        state.mode = "url";
+        toast("Loading URL in iframe...", "success");
+        setStatus("Loading iframe");
+        renderAll();
+        saveState();
+      });
+
+      // Clear content
+      els.btnClearContent.addEventListener("click", () => {
+        state.url = "";
+        state.imageDataUrl = null;
+        toast("Content cleared.", "success");
+        setStatus("Cleared");
+        renderAll();
+        saveState();
+      });
+
+      // Image upload
+      els.contentImageFile.addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+        try{
+          const dataUrl = await readFileAsDataURL(file);
+          state.imageDataUrl = dataUrl;
+          state.mode = "image";
+          resetImageTransform();
+          setStatus("Image loaded");
+          toast("Image loaded.", "success");
+          renderAll();
+          saveState();
+        }catch(err){
+          toast("Could not load that image.", "error");
+        }finally{
+          e.target.value = "";
+        }
+      });
+
+      // Fit pills
+      els.fitCover.addEventListener("click", () => {
+        state.imageFit = "cover";
+        renderFitPills();
+        renderContent();
+        saveState();
+      });
+      els.fitContain.addEventListener("click", () => {
+        state.imageFit = "contain";
+        renderFitPills();
+        renderContent();
+        saveState();
+      });
+
+      els.imageScaleRange.addEventListener("input", () => {
+        normalizeImageTransform();
+        state.imageTransform.scale = clamp(parseInt(els.imageScaleRange.value, 10) / 100, 0.2, 8);
+        applyImageTransformToDom();
+        saveState();
+        setStatus(`Image zoom ${Math.round(state.imageTransform.scale * 100)}%`);
+      });
+
+      els.btnResetImageTransform.addEventListener("click", () => {
+        resetImageTransform();
+        applyImageTransformToDom();
+        saveState();
+        setStatus("Image transform reset");
+        toast("Image position and scale reset.", "success");
+      });
+
+      // Background custom picker
+      els.bgColorPicker.addEventListener("input", () => {
+        state.bgCustom = els.bgColorPicker.value;
+        // set preset to something non-transparent but keep current preset selection UI
+        if(state.bgPresetId === "transparent"){
+          // user picked a color, move away from transparent
+          state.bgPresetId = "custom";
+        }
+        applyCanvasBackground();
+        renderBgSwatches();
+        saveState();
+      });
+
+      // Scale
+      els.scaleRange.addEventListener("input", () => {
+        state.scale = parseFloat(els.scaleRange.value);
+        applyScale();
+        saveState();
+      });
+
+      // Shadow controls
+      els.shadowToggle.addEventListener("change", () => {
+        state.shadow.enabled = els.shadowToggle.checked;
+        applyShadow();
+        saveState();
+      });
+      els.shadowBlur.addEventListener("input", () => {
+        state.shadow.blur = parseInt(els.shadowBlur.value, 10);
+        applyShadow();
+        saveState();
+      });
+      els.shadowOpacity.addEventListener("input", () => {
+        state.shadow.opacity = parseFloat(els.shadowOpacity.value);
+        applyShadow();
+        saveState();
+      });
+      els.shadowX.addEventListener("input", () => {
+        state.shadow.x = parseInt(els.shadowX.value, 10);
+        applyShadow();
+        saveState();
+      });
+      els.shadowY.addEventListener("input", () => {
+        state.shadow.y = parseInt(els.shadowY.value, 10);
+        applyShadow();
+        saveState();
+      });
+      els.shadowSpread.addEventListener("input", () => {
+        state.shadow.spread = parseInt(els.shadowSpread.value, 10);
+        applyShadow();
+        saveState();
+      });
+
+      // Reset / Export / Center
+      els.btnReset.addEventListener("click", resetState);
+
+      els.btnCenter.addEventListener("click", () => {
+        // Scroll the canvasWrap to center (best-effort)
+        const wrap = els.canvasWrap;
+        wrap.scrollTo({
+          left: (wrap.scrollWidth - wrap.clientWidth) / 2,
+          top: (wrap.scrollHeight - wrap.clientHeight) / 2,
+          behavior: "smooth"
+        });
+      });
+
+      document.addEventListener("keydown", (e) => {
+        const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
+        const typing = tag === "input" || tag === "textarea" || tag === "select";
+        if(!typing && (e.key === "r" || e.key === "R")){
+          resetState();
+        }
+      });
+
+      // Drag & drop into screen
+      const screenEl = els.screen;
+
+      screenEl.addEventListener("dragenter", (e) => {
+        if(state.mode !== "image") return;
+        e.preventDefault();
+        els.dropHint.classList.add("show");
+      });
+      screenEl.addEventListener("dragover", (e) => {
+        if(state.mode !== "image") return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        els.dropHint.classList.add("show");
+      });
+
+      screenEl.addEventListener("dragleave", (e) => {
+        if(state.mode !== "image") return;
+        // If leaving the screen area, hide the hint only when there's no image loaded
+        if(!screenEl.contains(e.relatedTarget)) {
+          els.dropHint.classList.toggle("show", !state.imageDataUrl);
+        }
+      });
+
+      screenEl.addEventListener("drop", async (e) => {
+        if(state.mode !== "image") return;
+        e.preventDefault();
+
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if(!file) return;
+
+        if(!file.type || !file.type.startsWith("image/")){
+          toast("Please drop an image file (PNG/JPG/WebP).", "error");
+          return;
+        }
+
+        try{
+          const dataUrl = await readFileAsDataURL(file);
+          state.imageDataUrl = dataUrl;
+          state.mode = "image";
+          resetImageTransform();
+          setStatus("Image dropped");
+          toast("Image loaded.", "success");
+          renderAll();
+          saveState();
+        }catch(err){
+          toast("Could not load that image.", "error");
+        }
+      });
+
+      // Export
+      els.btnExport.addEventListener("click", async () => {
+        try{
+          await exportPNG();
+        }catch(err){
+          console.error(err);
+          toast("Export failed. Check console for details.", "error");
+        }
+      });
+    }
+
+    function wireRectEditorInteractions(){
+      const dragState = {
+        active: false,
+        pointerId: null,
+        mode: null,
+        startClientX: 0,
+        startClientY: 0,
+        startRect: null,
+        scaleX: 1,
+        scaleY: 1
+      };
+
+      const beginDrag = (e, mode) => {
+        if(!state.usingCustomFrame) return;
+        if(e.button !== 0) return;
+
+        const frameScale = getFrameScale();
+        dragState.active = true;
+        dragState.pointerId = e.pointerId;
+        dragState.mode = mode;
+        dragState.startClientX = e.clientX;
+        dragState.startClientY = e.clientY;
+        dragState.startRect = { ...state.screenRect };
+        dragState.scaleX = frameScale.sx || 1;
+        dragState.scaleY = frameScale.sy || 1;
+
+        els.rectEditor.setPointerCapture(e.pointerId);
+        els.rectEditor.classList.toggle("resizingX", mode === "resize-x");
+        els.rectEditor.classList.toggle("resizingXY", mode === "resize-xy");
+        setStatus(mode === "move" ? "Moving screen rect" : "Resizing screen rect");
+        e.preventDefault();
+      };
+
+      const onPointerMove = (e) => {
+        if(!dragState.active || e.pointerId !== dragState.pointerId) return;
+
+        const dxNatural = (e.clientX - dragState.startClientX) / dragState.scaleX;
+        const dyNatural = (e.clientY - dragState.startClientY) / dragState.scaleY;
+        const next = { ...dragState.startRect };
+
+        if(dragState.mode === "move"){
+          next.x = dragState.startRect.x + dxNatural;
+          next.y = dragState.startRect.y + dyNatural;
+        }else if(dragState.mode === "resize-x"){
+          next.w = dragState.startRect.w + dxNatural;
+        }else if(dragState.mode === "resize-xy"){
+          next.w = dragState.startRect.w + dxNatural;
+          next.h = dragState.startRect.h + dyNatural;
+        }
+
+        state.screenRect = clampScreenRectToFrame(next);
+        syncRectInputs();
+        positionScreen();
+        saveState();
+      };
+
+      const finishDrag = (e) => {
+        if(!dragState.active || e.pointerId !== dragState.pointerId) return;
+        if(els.rectEditor.hasPointerCapture?.(e.pointerId)){
+          els.rectEditor.releasePointerCapture(e.pointerId);
+        }
+        dragState.active = false;
+        dragState.pointerId = null;
+        dragState.mode = null;
+        dragState.startRect = null;
+        els.rectEditor.classList.remove("resizingX", "resizingXY");
+        setStatus("Screen rect updated");
+      };
+
+      els.rectEditor.addEventListener("pointerdown", (e) => beginDrag(e, "move"));
+      els.rectHandleX.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        beginDrag(e, "resize-x");
+      });
+      els.rectHandleCorner.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        beginDrag(e, "resize-xy");
+      });
+
+      els.rectEditor.addEventListener("pointermove", onPointerMove);
+      els.rectEditor.addEventListener("pointerup", finishDrag);
+      els.rectEditor.addEventListener("pointercancel", finishDrag);
+    }
+
+    function wireImageTransformInteractions(){
+      const drag = {
+        active: false,
+        pointerId: null,
+        startClientX: 0,
+        startClientY: 0,
+        startX: 0,
+        startY: 0
+      };
+
+      const getAdjustableImage = () => els.screenInner.querySelector("img.adjustableImage");
+
+      els.screen.addEventListener("pointerdown", (e) => {
+        if(state.mode !== "image" || !state.imageDataUrl) return;
+        const img = e.target.closest("img.adjustableImage");
+        if(!img) return;
+        if(e.button !== 0) return;
+
+        normalizeImageTransform();
+        drag.active = true;
+        drag.pointerId = e.pointerId;
+        drag.startClientX = e.clientX;
+        drag.startClientY = e.clientY;
+        drag.startX = state.imageTransform.x;
+        drag.startY = state.imageTransform.y;
+        img.classList.add("dragging");
+        img.setPointerCapture(e.pointerId);
+        setStatus("Adjusting image position");
+        e.preventDefault();
+      });
+
+      els.screen.addEventListener("pointermove", (e) => {
+        if(!drag.active || e.pointerId !== drag.pointerId) return;
+        const img = getAdjustableImage();
+        if(!img) return;
+        state.imageTransform.x = drag.startX + (e.clientX - drag.startClientX);
+        state.imageTransform.y = drag.startY + (e.clientY - drag.startClientY);
+        applyImageTransformToDom();
+      });
+
+      const finishDrag = (e) => {
+        if(!drag.active || e.pointerId !== drag.pointerId) return;
+        const img = getAdjustableImage();
+        if(img){
+          img.classList.remove("dragging");
+          if(img.hasPointerCapture?.(e.pointerId)){
+            img.releasePointerCapture(e.pointerId);
+          }
+        }
+        drag.active = false;
+        drag.pointerId = null;
+        saveState();
+        setStatus("Image position updated");
+      };
+
+      els.screen.addEventListener("pointerup", finishDrag);
+      els.screen.addEventListener("pointercancel", finishDrag);
+
+      els.screen.addEventListener("wheel", (e) => {
+        if(state.mode !== "image" || !state.imageDataUrl) return;
+        const img = getAdjustableImage();
+        if(!img) return;
+
+        e.preventDefault();
+        normalizeImageTransform();
+        const factor = e.deltaY < 0 ? 1.08 : 0.92;
+        state.imageTransform.scale = clamp(state.imageTransform.scale * factor, 0.2, 8);
+        applyImageTransformToDom();
+        saveState();
+        setStatus(`Image zoom ${Math.round(state.imageTransform.scale * 100)}%`);
+      }, { passive: false });
+    }
+
+    // -------------------------
+    // Export (PNG)
+    // -------------------------
+    async function exportPNG(){
+      // NOTE:
+      // - We can reliably export when the content is an IMAGE (we control pixels).
+      // - We cannot capture cross-origin iframes due to browser security rules.
+      // We'll export the frame + background, and:
+      // - If Image mode: draw the image into the screen rect with cover/contain.
+      // - If URL mode: draw a placeholder message in the screen area.
+
+      const frame = els.frameImg;
+      if(!frame || !frame.complete || !frame.naturalWidth){
+        toast("Frame image is not ready yet.", "error");
+        return;
+      }
+
+      const naturalW = frame.naturalWidth;
+      const naturalH = frame.naturalHeight;
+
+      // Padding around the device inside the exported canvas
+      const pad = 140; // px in output
+      const outW = naturalW + pad * 2;
+      const outH = naturalH + pad * 2;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = outW;
+      canvas.height = outH;
+
+      const ctx = canvas.getContext("2d");
+      if(!ctx){
+        toast("Canvas is not supported in this browser.", "error");
+        return;
+      }
+
+      // Background
+      const preset = BG_PRESETS.find(x => x.id === state.bgPresetId);
+      const isTransparentBg = preset && preset.id === "transparent";
+      if(!isTransparentBg){
+        ctx.fillStyle = state.bgCustom || "#0b0f17";
+        ctx.fillRect(0, 0, outW, outH);
+      } // else keep transparent
+
+      // Draw frame
+      ctx.drawImage(frame, pad, pad);
+
+      // Screen rect in natural pixels (relative to frame)
+      const r = state.screenRect;
+      const screenX = pad + r.x;
+      const screenY = pad + r.y;
+      const screenW = r.w;
+      const screenH = r.h;
+      // Convert preview radius (CSS px) into natural frame pixels so export matches what user sees.
+      const frameScale = getFrameScale();
+      const radiusScaleX = frameScale.sx || 1;
+      const radiusScaleY = frameScale.sy || 1;
+      const exportRadius = getActiveScreenRadius() / Math.max(Math.min(radiusScaleX, radiusScaleY), 0.0001);
+
+      // Draw screen content with clipping
+      ctx.save();
+      roundedRectPath(ctx, screenX, screenY, screenW, screenH, exportRadius);
+      ctx.clip();
+
+      // Optional subtle screen backing
+      ctx.fillStyle = "#0b1220";
+      ctx.fillRect(screenX, screenY, screenW, screenH);
+
+      if(state.mode === "image" && state.imageDataUrl){
+        const contentImg = await loadImage(state.imageDataUrl);
+
+        // Compute draw for cover/contain
+        const iw = contentImg.naturalWidth || contentImg.width;
+        const ih = contentImg.naturalHeight || contentImg.height;
+
+        const fit = state.imageFit; // "cover" or "contain"
+        const scale = (fit === "cover")
+          ? Math.max(screenW / iw, screenH / ih)
+          : Math.min(screenW / iw, screenH / ih);
+
+        const dw = iw * scale;
+        const dh = ih * scale;
+
+        normalizeImageTransform();
+        const tx = state.imageTransform.x;
+        const ty = state.imageTransform.y;
+        const zoom = state.imageTransform.scale;
+
+        ctx.save();
+        ctx.translate(screenX + screenW / 2 + tx, screenY + screenH / 2 + ty);
+        ctx.scale(zoom, zoom);
+        ctx.drawImage(contentImg, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+      } else {
+        // URL mode or missing image: placeholder
+        ctx.fillStyle = "rgba(255,255,255,0.88)";
+        ctx.font = "700 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const msg1 = (state.mode === "url")
+          ? "IFRAME CONTENT NOT CAPTURED"
+          : "NO IMAGE LOADED";
+
+        const msg2 = (state.mode === "url")
+          ? "Browsers block exporting cross-origin iframes."
+          : "Switch to Image mode and drop/upload an image.";
+
+        ctx.fillText(msg1, screenX + screenW / 2, screenY + screenH / 2 - 14);
+
+        ctx.fillStyle = "rgba(255,255,255,0.65)";
+        ctx.font = "500 13px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+        ctx.fillText(msg2, screenX + screenW / 2, screenY + screenH / 2 + 14);
+      }
+
+      ctx.restore();
+
+      // Download
+      const fileName = `mockup-${state.templateId}-${Date.now()}.png`;
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      toast("Exported PNG.", "success");
+      setStatus("Exported");
+    }
+
+    function roundedRectPath(ctx, x, y, w, h, radius){
+      const r = clamp(radius || 0, 0, Math.min(w, h) / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // -------------------------
+    // Init
+    // -------------------------
+    function init(){
+      loadState();
+
+      // Ensure template exists
+      if(!TEMPLATES.some(t => t.id === state.templateId)){
+        state.templateId = TEMPLATES[0].id;
+      }
+
+      // Seed UI defaults (ranges etc.) from state
+      els.scaleRange.value = String(state.scale);
+      els.shadowToggle.checked = !!state.shadow.enabled;
+
+      renderAll();
+      wireEvents();
+      wireFrameLoad();
+
+      // Start centered
+      requestAnimationFrame(() => {
+        els.btnCenter.click();
+      });
+
+      setStatus("Ready");
+    }
+
+    init();
+
+    document.addEventListener("keydown", (e) => {
+      // ignore when typing in inputs
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      const typing = tag === "input" || tag === "textarea" || tag === "select";
+      if (typing) return;
+      console.log("Keydown:", e.key, e.code);
+
+      // Example: forward key to iframe via postMessage
+      const iframe = els.screenInner.querySelector("iframe");
+      if (iframe && state.mode === "url") {
+        console.log("echo");
+        iframe.contentWindow?.postMessage(
+          { type: "KEYDOWN", key: e.key, code: e.code, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey },
+          "*"
+        );
+      }
+    });
+
+  </script>
+</body>
+</html>
