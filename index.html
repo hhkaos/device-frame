@@ -200,9 +200,19 @@
     /* Device stage (frame + screen clipping) */
     .deviceStage{
       position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       transform: scale(var(--device-scale));
       transform-origin: center;
       will-change: transform;
+    }
+
+    .deviceRotator{
+      position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
 
     .deviceShadow{
@@ -251,6 +261,7 @@
     .screenInner{
       position:absolute;
       inset:0;
+      transform-origin: center center;
     }
 
     .screenInner iframe{
@@ -355,18 +366,67 @@
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.04);
       border-radius: var(--radius);
-      padding: 12px;
       margin-bottom: 12px;
+      overflow: hidden;
     }
-    .section h3{
+    .sectionHeader{
+      list-style: none;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      padding: 12px;
+      user-select:none;
+    }
+    .sectionHeader::-webkit-details-marker{ display:none; }
+    .sectionHeader::after{
+      content: "▸";
+      color: var(--muted);
       font-size: 13px;
-      margin: 0 0 10px 0;
+      transition: transform .15s ease;
+      flex: 0 0 auto;
+    }
+    .section[open] > .sectionHeader::after,
+    .advancedSection[open] > .sectionHeader::after{
+      transform: rotate(90deg);
+    }
+    .sectionTitle{
+      font-size: 13px;
+      margin: 0;
       color: rgba(255,255,255,0.88);
       letter-spacing: 0.2px;
+    }
+    .sectionBody{
+      padding: 0 12px 12px;
     }
     .section p{
       margin: 8px 0 0 0;
       color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .advancedSection{
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+    .advancedSection .sectionHeader{
+      padding: 10px 12px;
+    }
+    .advancedSection .sectionBody{
+      padding: 0 12px 12px;
+    }
+    .hidden{ display:none !important; }
+    .notice{
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.76);
       font-size: 12px;
       line-height: 1.35;
     }
@@ -551,290 +611,324 @@
   <div class="app">
     <!-- Left sticky panel -->
     <aside class="panel" id="panel">
-      <div class="section">
-        <h3>Mockup Generator</h3>
-        <p>
-          Load a <b>URL (iframe)</b> or <b>image</b> and render it inside a device frame.
-          Drag and drop an image over the device screen in <b>Image mode</b>.
-        </p>
-        <div class="notice">
-          <b>Export note:</b> Exporting to PNG works reliably for image content.
-          If you load a URL in an iframe, browsers block pixel capture of cross-origin iframes,
-          so export will fallback to a screenshot warning.
-        </div>
-      </div>
-
-      <div class="section" id="presetsSection">
-        <h3>Presets</h3>
-
-        <div class="row one">
-          <div>
-            <label for="presetSelect">Saved presets</label>
-            <select id="presetSelect"></select>
-          </div>
-        </div>
-
-        <div class="row one">
-          <div class="inline">
-            <button class="btn primary" id="btnLoadPreset" type="button">Load preset</button>
-            <button class="btn danger" id="btnDeletePreset" type="button">Delete</button>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="row one">
-          <div>
-            <label for="presetName">New preset name</label>
-            <input id="presetName" type="text" placeholder="e.g. iPhone, pastel mint, soft shadow" />
-          </div>
-        </div>
-
-        <div class="row one">
-          <div class="inline">
-            <button class="btn" id="btnSavePreset" type="button">Save as new preset</button>
-            <button class="btn ghost" id="btnOverwritePreset" type="button" title="Overwrite the selected preset with current values">Overwrite selected</button>
-          </div>
-        </div>
-
-        <p class="small">Presets are stored in localStorage in this browser.</p>
-      </div>
-
-      <div class="section">
-        <h3>1) Device Frame</h3>
-        <div class="row one">
-          <div>
-            <label for="templateSelect">Template</label>
-            <select id="templateSelect"></select>
-          </div>
-        </div>
-
-        <p class="small">
-          Templates load frame images from your local folder.
-          Put images in <span class="kbd">./frames/</span> and adjust paths in the JS config.
-        </p>
-      </div>
-
-      <div class="section" id="customFrameSection">
-        <h3>2) Custom Frame (Upload)</h3>
-
-        <div class="row one">
-          <div class="inline">
-            <button class="btn" id="btnUseCustomFrame" type="button">Activate Manual Adjust</button>
-            <button class="btn ghost" id="btnUseTemplate" type="button" title="Switch back to the selected template">Use Template Rect</button>
-          </div>
-        </div>
-
-        <div class="row one">
-          <div>
-            <label for="customFrameFile">Upload frame image (PNG/JPG)</label>
-            <input id="customFrameFile" type="file" accept="image/*" />
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label for="screenX">Screen X</label>
-            <input id="screenX" type="number" min="0" step="1" />
-          </div>
-          <div>
-            <label for="screenY">Screen Y</label>
-            <input id="screenY" type="number" min="0" step="1" />
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label for="screenW">Screen Width</label>
-            <input id="screenW" type="number" min="1" step="1" />
-          </div>
-          <div>
-            <label for="screenH">Screen Height</label>
-            <input id="screenH" type="number" min="1" step="1" />
-          </div>
-        </div>
-
-        <div class="row one">
-        <div>
-          <label for="screenRadius">Screen corner radius</label>
-          <input id="screenRadius" type="range" min="0" max="80" step="1" />
-          <div class="small"><span id="screenRadiusLabel"></span></div>
-        </div>
-      </div>
-
-        <div class="row one">
-          <div class="inline">
-            <button class="btn primary" id="btnApplyScreenRect" type="button">Apply Screen Rect</button>
-            <button class="btn" id="btnFitRectToTemplate" type="button" title="Load the current template default screen rectangle">Load Default Rect</button>
-          </div>
-        </div>
-
-        <div class="hintBox">
-          <b>How to adjust the screen area:</b><br/>
-          1) Upload a frame image, then start with <b>Load Default Rect</b> (or edit values).<br/>
-          2) The purple rectangle on the preview shows where your content will be clipped.<br/>
-          3) Tweak X, Y, Width, Height until the rectangle matches the visible screen.
-        </div>
-
-        <p class="small">
-          Custom frame and screen rectangle are saved to <b>localStorage</b>.
-        </p>
-      </div>
-
-      <div class="section">
-        <h3>3) Content</h3>
-
-        <div class="row one">
-          <div class="inline">
-            <span class="pill" id="modeUrl">URL Mode</span>
-            <span class="pill" id="modeImage">Image Mode</span>
-          </div>
-        </div>
-
-        <div id="urlControls">
-          <div class="row one">
-            <div>
-              <label for="urlInput">URL</label>
-              <input id="urlInput" type="text" placeholder="https://example.com" />
-            </div>
-          </div>
-          <div class="row one">
-            <div class="inline">
-              <button class="btn primary" id="btnLoadUrl" type="button">Load</button>
-              <button class="btn" id="btnClearContent" type="button">Clear</button>
-            </div>
-          </div>
-
-          <p class="small">
-            Tip: some sites block embedding in iframes (X-Frame-Options / CSP).
-            If a site refuses to load, try a different URL.
+      <details class="section">
+        <summary class="sectionHeader"><h3 class="sectionTitle">Mockup Generator</h3></summary>
+        <div class="sectionBody">
+          <p>
+            Load a <b>URL (iframe)</b> or <b>image</b> and render it inside a device frame.
+            Drag and drop an image over the device screen in <b>Image mode</b>.
           </p>
         </div>
+      </details>
 
-        <div id="imageControls">
+      <details class="section" id="presetsSection" open>
+        <summary class="sectionHeader"><h3 class="sectionTitle">Presets</h3></summary>
+        <div class="sectionBody">
           <div class="row one">
             <div>
-              <label>Upload image</label>
-              <input id="contentImageFile" type="file" accept="image/*" />
+              <label for="presetSelect">Saved presets</label>
+              <select id="presetSelect"></select>
             </div>
           </div>
 
           <div class="row one">
+            <div class="inline">
+              <button class="btn primary" id="btnLoadPreset" type="button">Load preset</button>
+              <button class="btn danger" id="btnDeletePreset" type="button">Delete</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row one">
             <div>
-              <label>Image fit</label>
-              <div class="inline">
-                <span class="pill" id="fitCover">Cover</span>
-                <span class="pill" id="fitContain">Contain</span>
+              <label for="presetName">New preset name</label>
+              <input id="presetName" type="text" placeholder="e.g. iPhone, pastel mint, soft shadow" />
+            </div>
+          </div>
+
+          <div class="row one">
+            <div class="inline">
+              <button class="btn" id="btnSavePreset" type="button">Save as new preset</button>
+              <button class="btn ghost" id="btnOverwritePreset" type="button" title="Overwrite the selected preset with current values">Overwrite selected</button>
+            </div>
+          </div>
+
+          <p class="small">Presets are stored in localStorage in this browser.</p>
+        </div>
+      </details>
+
+      <details class="section">
+        <summary class="sectionHeader"><h3 class="sectionTitle">Device Frame</h3></summary>
+        <div class="sectionBody">
+          <div id="templateFrameControls">
+            <div class="row one">
+              <div>
+                <label for="templateSelect">Template</label>
+                <select id="templateSelect"></select>
               </div>
             </div>
+
+            <div class="row one">
+              <div>
+                <label>Rotation</label>
+                <div class="inline">
+                  <button class="btn" id="btnRotateCcw" type="button">Rotate -90°</button>
+                  <button class="btn" id="btnRotateCw" type="button">Rotate +90°</button>
+                  <span class="pill active" id="frameRotationLabel">0°</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="row one">
+              <div class="inline">
+                <button class="btn" id="btnUseCustomFrame" type="button">Use Custom Frame</button>
+              </div>
+            </div>
+
+            <p class="small">
+              Templates load frame images from your local folder.
+              Put images in <span class="kbd">./frames/</span> and adjust paths in the JS config.
+            </p>
+          </div>
+
+          <div id="customFrameSection" class="hidden">
+            <div class="row one">
+              <div class="inline">
+                <button class="btn ghost" id="btnUseTemplate" type="button" title="Switch back to the selected template">Back to Templates</button>
+                <button class="btn" id="btnToggleManualAdjust" type="button">Activate Manual Adjust</button>
+              </div>
+            </div>
+
+            <div class="row one">
+              <div>
+                <label for="customFrameFile">Upload frame image (PNG/JPG)</label>
+                <input id="customFrameFile" type="file" accept="image/*" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="screenX">Screen X</label>
+                <input id="screenX" type="number" min="0" step="1" />
+              </div>
+              <div>
+                <label for="screenY">Screen Y</label>
+                <input id="screenY" type="number" min="0" step="1" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="screenW">Screen Width</label>
+                <input id="screenW" type="number" min="1" step="1" />
+              </div>
+              <div>
+                <label for="screenH">Screen Height</label>
+                <input id="screenH" type="number" min="1" step="1" />
+              </div>
+            </div>
+
+            <div class="row one">
+              <div>
+                <label for="screenRadius">Screen corner radius</label>
+                <input id="screenRadius" type="range" min="0" max="80" step="1" />
+                <div class="small"><span id="screenRadiusLabel"></span></div>
+              </div>
+            </div>
+
+            <div class="row one">
+              <div class="inline">
+                <button class="btn primary" id="btnApplyScreenRect" type="button">Apply Screen Rect</button>
+                <button class="btn" id="btnFitRectToTemplate" type="button" title="Load the current template default screen rectangle">Load Default Rect</button>
+              </div>
+            </div>
+
+            <div class="hintBox">
+              <b>How to adjust the screen area:</b><br/>
+              1) Upload a frame image, then start with <b>Load Default Rect</b> (or edit values).<br/>
+              2) The purple rectangle on the preview shows where your content will be clipped.<br/>
+              3) Tweak X, Y, Width, Height until the rectangle matches the visible screen.<br/>
+              4) Press <span class="kbd">Esc</span> or click <b>Disable Manual Adjust</b> when you want to interact with the content again.
+            </div>
+
+            <p class="small">
+              Custom frame and screen rectangle are saved to <b>localStorage</b>.
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <details class="section">
+        <summary class="sectionHeader"><h3 class="sectionTitle">Content</h3></summary>
+        <div class="sectionBody">
+          <div class="row one">
+            <div class="inline">
+              <span class="pill" id="modeUrl">URL Mode</span>
+              <span class="pill" id="modeImage">Image Mode</span>
+            </div>
+          </div>
+
+          <div id="urlControls">
+            <div class="row one">
+              <div>
+                <label for="urlInput">URL</label>
+                <input id="urlInput" type="text" placeholder="https://example.com" />
+              </div>
+            </div>
+            <div class="row one">
+              <div class="inline">
+                <button class="btn primary" id="btnLoadUrl" type="button">Load</button>
+                <button class="btn" id="btnClearContent" type="button">Clear</button>
+              </div>
+            </div>
+
+            <p class="small">
+              Tip: some sites block embedding in iframes (X-Frame-Options / CSP).
+              If a site refuses to load, try a different URL.
+            </p>
+          </div>
+
+          <div id="imageControls">
+            <div class="row one">
+              <div>
+                <label>Upload image</label>
+                <input id="contentImageFile" type="file" accept="image/*" />
+              </div>
+            </div>
+
+            <div class="row one">
+              <div>
+                <label>Image fit</label>
+                <div class="inline">
+                  <span class="pill" id="fitCover">Cover</span>
+                  <span class="pill" id="fitContain">Contain</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="row one">
+              <div>
+                <label for="imageScaleRange">Image scale</label>
+                <input id="imageScaleRange" type="range" min="20" max="800" step="1" />
+                <div class="inline" style="margin-top:8px;align-items:center;">
+                  <div class="small"><span id="imageScaleLabel"></span></div>
+                  <input id="imageScaleInput" type="number" min="20" max="800" step="1" style="width:96px;" />
+                  <span class="small">%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="row one">
+              <div class="inline">
+                <button class="btn ghost" id="btnResetImageTransform" type="button">Reset Image Position/Scale</button>
+              </div>
+            </div>
+
+            <p class="small">
+              Drag and drop an image directly onto the device screen.
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <details class="section">
+        <summary class="sectionHeader"><h3 class="sectionTitle">Background</h3></summary>
+        <div class="sectionBody">
+          <div class="swatchGrid" id="bgSwatches"></div>
+
+          <div class="divider"></div>
+
+          <div class="row one">
+            <div>
+              <label for="bgColorPicker">Custom color</label>
+              <input id="bgColorPicker" type="color" value="#0b0f17" />
+            </div>
           </div>
 
           <div class="row one">
             <div>
-              <label for="imageScaleRange">Image scale</label>
-              <input id="imageScaleRange" type="range" min="20" max="800" step="1" />
-              <div class="small"><span id="imageScaleLabel"></span></div>
+              <label for="scaleRange">Device scale</label>
+              <input id="scaleRange" type="range" min="0.4" max="1.6" step="0.01" />
+              <div class="small"><span id="scaleLabel"></span></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="section">
+        <summary class="sectionHeader"><h3 class="sectionTitle">Drop Shadow</h3></summary>
+        <div class="sectionBody">
+          <div class="row one">
+            <div class="inline">
+              <label style="margin:0;">
+                <input id="shadowToggle" type="checkbox" />
+                <span style="margin-left:8px;color:var(--muted);font-size:12px;">Enable shadow</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="row two">
+            <div>
+              <label for="shadowBlur">Blur</label>
+              <input id="shadowBlur" type="range" min="0" max="120" step="1" />
+              <div class="small"><span id="shadowBlurLabel"></span></div>
+            </div>
+            <div>
+              <label for="shadowOpacity">Opacity</label>
+              <input id="shadowOpacity" type="range" min="0" max="1" step="0.01" />
+              <div class="small"><span id="shadowOpacityLabel"></span></div>
+            </div>
+          </div>
+
+          <div class="row two">
+            <div>
+              <label for="shadowX">Offset X</label>
+              <input id="shadowX" type="range" min="-80" max="80" step="1" />
+              <div class="small"><span id="shadowXLabel"></span></div>
+            </div>
+            <div>
+              <label for="shadowY">Offset Y</label>
+              <input id="shadowY" type="range" min="-80" max="80" step="1" />
+              <div class="small"><span id="shadowYLabel"></span></div>
             </div>
           </div>
 
           <div class="row one">
-            <div class="inline">
-              <button class="btn ghost" id="btnResetImageTransform" type="button">Reset Image Position/Scale</button>
+            <div>
+              <label for="shadowSpread">Spread (approx)</label>
+              <input id="shadowSpread" type="range" min="0" max="40" step="1" />
+              <div class="small"><span id="shadowSpreadLabel"></span></div>
             </div>
           </div>
 
           <p class="small">
-            Drag and drop an image directly onto the device screen.
+            Spread is approximated via an extra box-shadow layer.
           </p>
         </div>
-      </div>
+      </details>
 
-      <div class="section">
-        <h3>4) Background</h3>
-        <div class="swatchGrid" id="bgSwatches"></div>
-
-        <div class="divider"></div>
-
-        <div class="row one">
-          <div>
-            <label for="bgColorPicker">Custom color</label>
-            <input id="bgColorPicker" type="color" value="#0b0f17" />
+      <details class="section">
+        <summary class="sectionHeader"><h3 class="sectionTitle">Actions</h3></summary>
+        <div class="sectionBody">
+          <div class="row one">
+            <div class="inline">
+              <button class="btn danger" id="btnReset" type="button">Reset</button>
+              <button class="btn primary" id="btnExport" type="button">Export PNG</button>
+            </div>
           </div>
+
+          <div class="notice">
+            <b>Export note:</b> Exporting to PNG works reliably for image content.
+            If you load a URL in an iframe, browsers block pixel capture of cross-origin iframes,
+            so export will fallback to a screenshot warning.
+          </div>
+
+          <p class="small">
+            Shortcut: press <span class="kbd">R</span> to reset (when not typing in an input).
+          </p>
         </div>
-
-        <div class="row one">
-          <div>
-            <label for="scaleRange">Device scale</label>
-            <input id="scaleRange" type="range" min="0.4" max="1.6" step="0.01" />
-            <div class="small"><span id="scaleLabel"></span></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h3>5) Drop Shadow</h3>
-
-        <div class="row one">
-          <div class="inline">
-            <label style="margin:0;">
-              <input id="shadowToggle" type="checkbox" />
-              <span style="margin-left:8px;color:var(--muted);font-size:12px;">Enable shadow</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="row two">
-          <div>
-            <label for="shadowBlur">Blur</label>
-            <input id="shadowBlur" type="range" min="0" max="120" step="1" />
-            <div class="small"><span id="shadowBlurLabel"></span></div>
-          </div>
-          <div>
-            <label for="shadowOpacity">Opacity</label>
-            <input id="shadowOpacity" type="range" min="0" max="1" step="0.01" />
-            <div class="small"><span id="shadowOpacityLabel"></span></div>
-          </div>
-        </div>
-
-        <div class="row two">
-          <div>
-            <label for="shadowX">Offset X</label>
-            <input id="shadowX" type="range" min="-80" max="80" step="1" />
-            <div class="small"><span id="shadowXLabel"></span></div>
-          </div>
-          <div>
-            <label for="shadowY">Offset Y</label>
-            <input id="shadowY" type="range" min="-80" max="80" step="1" />
-            <div class="small"><span id="shadowYLabel"></span></div>
-          </div>
-        </div>
-
-        <div class="row one">
-          <div>
-            <label for="shadowSpread">Spread (approx)</label>
-            <input id="shadowSpread" type="range" min="0" max="40" step="1" />
-            <div class="small"><span id="shadowSpreadLabel"></span></div>
-          </div>
-        </div>
-
-        <p class="small">
-          Spread is approximated via an extra box-shadow layer.
-        </p>
-      </div>
-
-      <div class="section">
-        <h3>6) Actions</h3>
-        <div class="row one">
-          <div class="inline">
-            <button class="btn danger" id="btnReset" type="button">Reset</button>
-            <button class="btn primary" id="btnExport" type="button">Export PNG</button>
-          </div>
-        </div>
-
-        <p class="small">
-          Shortcut: press <span class="kbd">R</span> to reset (when not typing in an input).
-        </p>
-      </div>
+      </details>
     </aside>
 
     <!-- Right preview area -->
@@ -853,27 +947,29 @@
       <div class="canvasWrap" id="canvasWrap">
         <div class="canvas" id="canvas">
           <div class="deviceStage" id="deviceStage">
-            <div class="deviceShadow" id="deviceShadow">
-              <img id="frameImg" class="frameImg" alt="Device frame" />
-              <div class="screen" id="screen">
-                <div class="screenInner" id="screenInner">
-                  <!-- either iframe or img injected here -->
-                </div>
-                <div class="dropHint" id="dropHint">
-                  <div>
-                    <div style="font-weight:800;font-size:14px;margin-bottom:6px;">Drop an image here</div>
-                    <div style="color:rgba(255,255,255,0.7);font-size:12px;">
-                      Or use the <b>Upload image</b> button in the panel.
+            <div class="deviceRotator" id="deviceRotator">
+              <div class="deviceShadow" id="deviceShadow">
+                <img id="frameImg" class="frameImg" alt="Device frame" />
+                <div class="screen" id="screen">
+                  <div class="screenInner" id="screenInner">
+                    <!-- either iframe or img injected here -->
+                  </div>
+                  <div class="dropHint" id="dropHint">
+                    <div>
+                      <div style="font-weight:800;font-size:14px;margin-bottom:6px;">Drop an image here</div>
+                      <div style="color:rgba(255,255,255,0.7);font-size:12px;">
+                        Or use the <b>Upload image</b> button in the panel.
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Visible rectangle editor overlay (for custom screen rect calibration) -->
-              <div class="rectEditor" id="rectEditor" style="display:none;">
-                <div class="rectLabel" id="rectLabel">Screen Area</div>
-                <div class="rectHandle rectHandleX" id="rectHandleX" title="Resize width"></div>
-                <div class="rectHandle rectHandleCorner" id="rectHandleCorner" title="Resize width and height"></div>
+                <!-- Visible rectangle editor overlay (for custom screen rect calibration) -->
+                <div class="rectEditor" id="rectEditor" style="display:none;">
+                  <div class="rectLabel" id="rectLabel">Screen Area</div>
+                  <div class="rectHandle rectHandleX" id="rectHandleX" title="Resize width"></div>
+                  <div class="rectHandle rectHandleCorner" id="rectHandleCorner" title="Resize width and height"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -907,6 +1003,7 @@
 
     const BG_PRESETS = [
       { id: "dark", name: "Dark", value: "#0b0f17" },
+      { id: "white", name: "White", value: "#FFFFFF" },
       { id: "chroma", name: "Chroma Green", value: "#00FF00" },
       { id: "pastel1", name: "Pastel Lavender", value: "#E9D5FF" },
       { id: "pastel2", name: "Pastel Mint", value: "#D1FAE5" },
@@ -926,6 +1023,8 @@
     // -------------------------
     const state = {
       usingCustomFrame: false,
+      manualAdjustActive: false,
+      frameRotation: 0,
 
       templateId: "desktop",
 
@@ -962,7 +1061,12 @@
     // -------------------------
     const els = {
       templateSelect: document.getElementById("templateSelect"),
+      templateFrameControls: document.getElementById("templateFrameControls"),
+      btnRotateCcw: document.getElementById("btnRotateCcw"),
+      btnRotateCw: document.getElementById("btnRotateCw"),
+      frameRotationLabel: document.getElementById("frameRotationLabel"),
       btnUseCustomFrame: document.getElementById("btnUseCustomFrame"),
+      btnToggleManualAdjust: document.getElementById("btnToggleManualAdjust"),
       btnUseTemplate: document.getElementById("btnUseTemplate"),
 
       customFrameSection: document.getElementById("customFrameSection"),
@@ -986,6 +1090,7 @@
       fitCover: document.getElementById("fitCover"),
       fitContain: document.getElementById("fitContain"),
       imageScaleRange: document.getElementById("imageScaleRange"),
+      imageScaleInput: document.getElementById("imageScaleInput"),
       imageScaleLabel: document.getElementById("imageScaleLabel"),
       btnResetImageTransform: document.getElementById("btnResetImageTransform"),
 
@@ -1013,6 +1118,7 @@
       canvasWrap: document.getElementById("canvasWrap"),
       canvas: document.getElementById("canvas"),
       deviceStage: document.getElementById("deviceStage"),
+      deviceRotator: document.getElementById("deviceRotator"),
       deviceShadow: document.getElementById("deviceShadow"),
       frameImg: document.getElementById("frameImg"),
       screen: document.getElementById("screen"),
@@ -1115,6 +1221,7 @@
       // Recommended: do NOT persist big data URLs in presets
       copy.imageDataUrl = null;
       copy.customFrameDataUrl = null;
+      copy.manualAdjustActive = false;
 
       return copy;
     }
@@ -1179,26 +1286,41 @@
       state.screenRect = Object.assign({ x:120, y:90, w:1200, h:760 }, parsed.screenRect || {});
       state.screenRadius = typeof parsed.screenRadius === "number" ? parsed.screenRadius : state.screenRadius;
       state.imageTransform = Object.assign({ x:0, y:0, scale:1 }, parsed.imageTransform || {});
+      state.manualAdjustActive = false;
+      state.frameRotation = normalizeQuarterTurn(parsed.frameRotation);
 
       // Safety: do not auto-enable custom frame without data
       if(state.usingCustomFrame && !state.customFrameDataUrl){
         state.usingCustomFrame = false;
       }
+      syncTemplateScreenDefaults();
+    }
+
+    function getCurrentTemplate(){
+      return TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
+    }
+
+    function syncTemplateScreenDefaults(){
+      if(state.usingCustomFrame) return;
+      const t = getCurrentTemplate();
+      state.screenRect = { ...t.screen };
+      state.screenRadius = t.screenRadius;
     }
 
 
     // Compute current displayed frame size and map "natural image pixels" to "CSS pixels".
     function getFrameScale(){
-      const rect = els.frameImg.getBoundingClientRect();
+      const cssW = els.frameImg.offsetWidth || els.frameImg.clientWidth || els.frameImg.naturalWidth || 1;
+      const cssH = els.frameImg.offsetHeight || els.frameImg.clientHeight || els.frameImg.naturalHeight || 1;
       const naturalW = els.frameImg.naturalWidth || 1;
       const naturalH = els.frameImg.naturalHeight || 1;
       return {
-        cssW: rect.width,
-        cssH: rect.height,
+        cssW,
+        cssH,
         naturalW,
         naturalH,
-        sx: rect.width / naturalW,
-        sy: rect.height / naturalH
+        sx: cssW / naturalW,
+        sy: cssH / naturalH
       };
     }
 
@@ -1223,9 +1345,30 @@
         state.shadow = Object.assign({ enabled:true, blur:40, opacity:0.35, x:0, y:18, spread:0 }, parsed.shadow || {});
         state.screenRect = Object.assign({ x:120, y:90, w:1200, h:760 }, parsed.screenRect || {});
         state.imageTransform = Object.assign({ x:0, y:0, scale:1 }, parsed.imageTransform || {});
+        state.manualAdjustActive = false;
+        state.frameRotation = normalizeQuarterTurn(parsed.frameRotation);
+        syncTemplateScreenDefaults();
       }catch(e){
         // ignore
       }
+    }
+
+    function normalizeQuarterTurn(value){
+      const n = Number.isFinite(value) ? value : parseInt(value || "0", 10);
+      const normalized = ((n % 360) + 360) % 360;
+      return [0, 90, 180, 270].includes(normalized) ? normalized : 0;
+    }
+
+    function getFrameRotationLabel(){
+      return `${normalizeQuarterTurn(state.frameRotation)}°`;
+    }
+
+    function rotateViewportDelta(dx, dy){
+      const rotation = normalizeQuarterTurn(state.frameRotation);
+      if(rotation === 90) return { x: dy, y: -dx };
+      if(rotation === 180) return { x: -dx, y: -dy };
+      if(rotation === 270) return { x: -dy, y: dx };
+      return { x: dx, y: dy };
     }
 
     function normalizeImageTransform(){
@@ -1255,6 +1398,7 @@
       normalizeImageTransform();
       const pct = Math.round(state.imageTransform.scale * 100);
       els.imageScaleRange.value = String(clamp(pct, 20, 800));
+      els.imageScaleInput.value = String(clamp(pct, 20, 800));
       els.imageScaleLabel.textContent = `${pct}%`;
     }
 
@@ -1270,6 +1414,8 @@
       localStorage.removeItem(LS_KEY);
 
       state.usingCustomFrame = false;
+      state.manualAdjustActive = false;
+      state.frameRotation = 0;
       state.templateId = "desktop";
       state.customFrameDataUrl = null;
 
@@ -1379,6 +1525,35 @@
       els.scaleLabel.textContent = `${Math.round(state.scale * 100)}%`;
     }
 
+    function applyFrameRotation(){
+      const rotation = normalizeQuarterTurn(state.frameRotation);
+      const s = getFrameScale();
+      const rotatedW = rotation % 180 === 0 ? s.cssW : s.cssH;
+      const rotatedH = rotation % 180 === 0 ? s.cssH : s.cssW;
+
+      els.frameRotationLabel.textContent = getFrameRotationLabel();
+      els.deviceRotator.style.width = `${Math.round(rotatedW)}px`;
+      els.deviceRotator.style.height = `${Math.round(rotatedH)}px`;
+      els.deviceShadow.style.transform = `rotate(${rotation}deg)`;
+      els.deviceShadow.style.transformOrigin = "center center";
+    }
+
+    function applyScreenContentRotation(){
+      const rotation = normalizeQuarterTurn(state.frameRotation);
+      const screenW = els.screen.offsetWidth || 0;
+      const screenH = els.screen.offsetHeight || 0;
+      const innerW = rotation % 180 === 0 ? screenW : screenH;
+      const innerH = rotation % 180 === 0 ? screenH : screenW;
+
+      els.screenInner.style.width = `${innerW}px`;
+      els.screenInner.style.height = `${innerH}px`;
+      els.screenInner.style.left = `${(screenW - innerW) / 2}px`;
+      els.screenInner.style.top = `${(screenH - innerH) / 2}px`;
+      els.screenInner.style.right = "auto";
+      els.screenInner.style.bottom = "auto";
+      els.screenInner.style.transform = rotation === 0 ? "none" : `rotate(${-rotation}deg)`;
+    }
+
     function applyShadow(){
       document.documentElement.style.setProperty("--shadow-enabled", state.shadow.enabled ? "1" : "0");
       document.documentElement.style.setProperty("--shadow-x", state.shadow.x + "px");
@@ -1441,7 +1616,8 @@
       }
 
       // Set screen radius
-      applyScreenRadius()
+      applyScreenRadius();
+      applyFrameRotation();
     }
 
     function positionScreen(){
@@ -1465,6 +1641,8 @@
       els.rectEditor.style.width = w + "px";
       els.rectEditor.style.height = h + "px";
       els.rectLabel.textContent = `Screen Area (${r.x}, ${r.y}, ${r.w}×${r.h})`;
+      applyFrameRotation();
+      applyScreenContentRotation();
     }
 
     function clampScreenRectToFrame(rect){
@@ -1514,14 +1692,16 @@
           els.dropHint.classList.add("show");
         }
       }
+
+      applyScreenContentRotation();
     }
 
     function renderCustomFrameSection(){
-      // Always show the section, but make it clearer when it's active.
-      els.customFrameSection.style.opacity = state.usingCustomFrame ? "1" : "0.92";
-      els.btnUseCustomFrame.textContent = state.usingCustomFrame ? "Manual Adjust Active" : "Activate Manual Adjust";
-      els.btnUseCustomFrame.classList.toggle("primary", state.usingCustomFrame);
-      showRectEditor(state.usingCustomFrame); // show guide when custom is active
+      els.templateFrameControls.classList.toggle("hidden", state.usingCustomFrame);
+      els.customFrameSection.classList.toggle("hidden", !state.usingCustomFrame);
+      els.btnToggleManualAdjust.textContent = state.manualAdjustActive ? "Disable Manual Adjust" : "Activate Manual Adjust";
+      els.btnToggleManualAdjust.classList.toggle("primary", state.manualAdjustActive);
+      showRectEditor(state.manualAdjustActive); // show guide only while calibrating
       syncRectInputs();
     }
 
@@ -1552,6 +1732,7 @@
       applyCanvasBackground();
       applyScale();
       applyShadow();
+      applyFrameRotation();
       renderCustomFrameSection();
       renderPresets();
       applyScreenRadius();
@@ -1603,6 +1784,20 @@
           }
         }
         setStatus("Template changed");
+        renderAll();
+        saveState();
+      });
+
+      els.btnRotateCcw.addEventListener("click", () => {
+        state.frameRotation = normalizeQuarterTurn(state.frameRotation - 90);
+        setStatus(`Frame rotated ${getFrameRotationLabel()}`);
+        renderAll();
+        saveState();
+      });
+
+      els.btnRotateCw.addEventListener("click", () => {
+        state.frameRotation = normalizeQuarterTurn(state.frameRotation + 90);
+        setStatus(`Frame rotated ${getFrameRotationLabel()}`);
         renderAll();
         saveState();
       });
@@ -1684,16 +1879,27 @@
       // Use custom / template toggles
       els.btnUseCustomFrame.addEventListener("click", () => {
         state.usingCustomFrame = true;
+        state.manualAdjustActive = !!state.customFrameDataUrl;
+        setStatus(state.customFrameDataUrl ? "Custom frame mode" : "Upload a custom frame image");
+        renderAll();
+        saveState();
+      });
+
+      els.btnToggleManualAdjust.addEventListener("click", () => {
         if(!state.customFrameDataUrl){
           toast("Upload a custom frame image to begin.", "info");
+          return;
         }
-        setStatus("Custom frame mode");
+
+        state.manualAdjustActive = !state.manualAdjustActive;
+        setStatus(state.manualAdjustActive ? "Manual adjust enabled" : "Manual adjust disabled");
         renderAll();
         saveState();
       });
 
       els.btnUseTemplate.addEventListener("click", () => {
         state.usingCustomFrame = false;
+        state.manualAdjustActive = false;
         // when leaving custom mode, reset to template defaults for current template
         const t = TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
         state.screenRect = { ...t.screen };
@@ -1712,6 +1918,7 @@
           const dataUrl = await readFileAsDataURL(file);
           state.customFrameDataUrl = dataUrl;
           state.usingCustomFrame = true;
+          state.manualAdjustActive = true;
 
           // If user hasn't customized rect yet, start from current template defaults
           const t = TEMPLATES.find(x => x.id === state.templateId) || TEMPLATES[0];
@@ -1862,6 +2069,15 @@
         setStatus(`Image zoom ${Math.round(state.imageTransform.scale * 100)}%`);
       });
 
+      els.imageScaleInput.addEventListener("input", () => {
+        normalizeImageTransform();
+        const pct = clamp(parseInt(els.imageScaleInput.value || "100", 10), 20, 800);
+        state.imageTransform.scale = pct / 100;
+        applyImageTransformToDom();
+        saveState();
+        setStatus(`Image zoom ${Math.round(state.imageTransform.scale * 100)}%`);
+      });
+
       els.btnResetImageTransform.addEventListener("click", () => {
         resetImageTransform();
         applyImageTransformToDom();
@@ -1938,6 +2154,11 @@
       document.addEventListener("keydown", (e) => {
         const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
         const typing = tag === "input" || tag === "textarea" || tag === "select";
+        if(e.key === "Escape" && state.manualAdjustActive){
+          deactivateManualAdjust();
+          e.preventDefault();
+          return;
+        }
         if(!typing && (e.key === "r" || e.key === "R")){
           resetState();
         }
@@ -2003,6 +2224,16 @@
       });
     }
 
+    let cancelRectEditorDrag = () => {};
+
+    function deactivateManualAdjust(){
+      cancelRectEditorDrag();
+      state.manualAdjustActive = false;
+      renderCustomFrameSection();
+      saveState();
+      setStatus("Manual adjust disabled");
+    }
+
     function wireRectEditorInteractions(){
       const dragState = {
         active: false,
@@ -2017,6 +2248,7 @@
 
       const beginDrag = (e, mode) => {
         if(!state.usingCustomFrame) return;
+        if(!state.manualAdjustActive) return;
         if(e.button !== 0) return;
 
         const frameScale = getFrameScale();
@@ -2039,8 +2271,12 @@
       const onPointerMove = (e) => {
         if(!dragState.active || e.pointerId !== dragState.pointerId) return;
 
-        const dxNatural = (e.clientX - dragState.startClientX) / dragState.scaleX;
-        const dyNatural = (e.clientY - dragState.startClientY) / dragState.scaleY;
+        const rotatedDelta = rotateViewportDelta(
+          e.clientX - dragState.startClientX,
+          e.clientY - dragState.startClientY
+        );
+        const dxNatural = rotatedDelta.x / dragState.scaleX;
+        const dyNatural = rotatedDelta.y / dragState.scaleY;
         const next = { ...dragState.startRect };
 
         if(dragState.mode === "move"){
@@ -2070,6 +2306,18 @@
         dragState.startRect = null;
         els.rectEditor.classList.remove("resizingX", "resizingXY");
         setStatus("Screen rect updated");
+      };
+
+      cancelRectEditorDrag = () => {
+        if(!dragState.active) return;
+        if(dragState.pointerId !== null && els.rectEditor.hasPointerCapture?.(dragState.pointerId)){
+          els.rectEditor.releasePointerCapture(dragState.pointerId);
+        }
+        dragState.active = false;
+        dragState.pointerId = null;
+        dragState.mode = null;
+        dragState.startRect = null;
+        els.rectEditor.classList.remove("resizingX", "resizingXY");
       };
 
       els.rectEditor.addEventListener("pointerdown", (e) => beginDrag(e, "move"));
@@ -2179,11 +2427,15 @@
 
       const naturalW = frame.naturalWidth;
       const naturalH = frame.naturalHeight;
+      const rotation = normalizeQuarterTurn(state.frameRotation);
+      const rotationRadians = rotation * Math.PI / 180;
+      const rotatedFrameW = rotation % 180 === 0 ? naturalW : naturalH;
+      const rotatedFrameH = rotation % 180 === 0 ? naturalH : naturalW;
 
       // Padding around the device inside the exported canvas
       const pad = 140; // px in output
-      const outW = naturalW + pad * 2;
-      const outH = naturalH + pad * 2;
+      const outW = rotatedFrameW + pad * 2;
+      const outH = rotatedFrameH + pad * 2;
 
       const canvas = document.createElement("canvas");
       canvas.width = outW;
@@ -2203,29 +2455,36 @@
         ctx.fillRect(0, 0, outW, outH);
       } // else keep transparent
 
-      // Draw frame
-      ctx.drawImage(frame, pad, pad);
-
       // Screen rect in natural pixels (relative to frame)
       const r = state.screenRect;
-      const screenX = pad + r.x;
-      const screenY = pad + r.y;
+      const frameX = -naturalW / 2;
+      const frameY = -naturalH / 2;
+      const screenX = frameX + r.x;
+      const screenY = frameY + r.y;
       const screenW = r.w;
       const screenH = r.h;
+      const contentW = rotation % 180 === 0 ? screenW : screenH;
+      const contentH = rotation % 180 === 0 ? screenH : screenW;
+      const screenCenterX = screenX + screenW / 2;
+      const screenCenterY = screenY + screenH / 2;
       // Convert preview radius (CSS px) into natural frame pixels so export matches what user sees.
       const frameScale = getFrameScale();
       const radiusScaleX = frameScale.sx || 1;
       const radiusScaleY = frameScale.sy || 1;
       const exportRadius = getActiveScreenRadius() / Math.max(Math.min(radiusScaleX, radiusScaleY), 0.0001);
 
-      // Draw screen content with clipping
       ctx.save();
+      ctx.translate(outW / 2, outH / 2);
+      ctx.rotate(rotationRadians);
+
+      // Draw screen content with clipping
       roundedRectPath(ctx, screenX, screenY, screenW, screenH, exportRadius);
       ctx.clip();
+      ctx.rotate(-rotationRadians);
 
       // Optional subtle screen backing
       ctx.fillStyle = "#0b1220";
-      ctx.fillRect(screenX, screenY, screenW, screenH);
+      ctx.fillRect(screenCenterX - contentW / 2, screenCenterY - contentH / 2, contentW, contentH);
 
       if(state.mode === "image" && state.imageDataUrl){
         const contentImg = await loadImage(state.imageDataUrl);
@@ -2236,8 +2495,8 @@
 
         const fit = state.imageFit; // "cover" or "contain"
         const scale = (fit === "cover")
-          ? Math.max(screenW / iw, screenH / ih)
-          : Math.min(screenW / iw, screenH / ih);
+          ? Math.max(contentW / iw, contentH / ih)
+          : Math.min(contentW / iw, contentH / ih);
 
         const dw = iw * scale;
         const dh = ih * scale;
@@ -2248,7 +2507,7 @@
         const zoom = state.imageTransform.scale;
 
         ctx.save();
-        ctx.translate(screenX + screenW / 2 + tx, screenY + screenH / 2 + ty);
+        ctx.translate(screenCenterX + tx, screenCenterY + ty);
         ctx.scale(zoom, zoom);
         ctx.drawImage(contentImg, -dw / 2, -dh / 2, dw, dh);
         ctx.restore();
@@ -2267,13 +2526,20 @@
           ? "Browsers block exporting cross-origin iframes."
           : "Switch to Image mode and drop/upload an image.";
 
-        ctx.fillText(msg1, screenX + screenW / 2, screenY + screenH / 2 - 14);
+        ctx.fillText(msg1, screenCenterX, screenCenterY - 14);
 
         ctx.fillStyle = "rgba(255,255,255,0.65)";
         ctx.font = "500 13px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-        ctx.fillText(msg2, screenX + screenW / 2, screenY + screenH / 2 + 14);
+        ctx.fillText(msg2, screenCenterX, screenCenterY + 14);
       }
 
+      ctx.restore();
+
+      // Draw frame on top of the content inside the same rotated device space.
+      ctx.save();
+      ctx.translate(outW / 2, outH / 2);
+      ctx.rotate(rotationRadians);
+      ctx.drawImage(frame, frameX, frameY);
       ctx.restore();
 
       // Download
@@ -2310,6 +2576,7 @@
       if(!TEMPLATES.some(t => t.id === state.templateId)){
         state.templateId = TEMPLATES[0].id;
       }
+      syncTemplateScreenDefaults();
 
       // Seed UI defaults (ranges etc.) from state
       els.scaleRange.value = String(state.scale);
