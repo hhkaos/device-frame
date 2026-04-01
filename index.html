@@ -22,6 +22,7 @@
       --accent: #7c5cff;
       --accent2: #22c55e;
       --danger: #ef4444;
+      --preview-topbar-height: 0px;
 
       --preview-bg: #111827;
       --checker-a: #e5e7eb;
@@ -39,6 +40,8 @@
 
       --canvas-bg: #0b0f17; /* defaults to dark */
       --device-scale: 1;
+      --canvas-wrap-width: 320px;
+      --canvas-wrap-height: 240px;
     }
 
     *{ box-sizing:border-box; }
@@ -89,7 +92,7 @@
     }
 
     .previewTopbar{
-      display:flex;
+      display:none;
       align-items:center;
       justify-content: space-between;
       padding: 12px 14px;
@@ -130,6 +133,21 @@
       align-items:center;
     }
 
+    .previewOverlayActions{
+      position:absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 12;
+      display:flex;
+      gap: 8px;
+    }
+
+    .previewOverlayActions .btn{
+      backdrop-filter: blur(12px);
+      background: rgba(11,15,23,0.72);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+    }
+
     .btn{
       appearance:none;
       border: 1px solid var(--border);
@@ -166,13 +184,21 @@
     }
 
     .canvasWrap{
-      height: calc(100% - 52px);
+      height: calc(100% - var(--preview-topbar-height));
       position: relative;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 18px;
+      padding: 0;
       overflow: auto;
+    }
+    .canvasWrap:fullscreen{
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+    }
+    .canvasWrap:fullscreen::backdrop{
+      background: #000;
     }
 
     /* Canvas background layer */
@@ -180,10 +206,13 @@
       position: relative;
       border-radius: 18px;
       padding: 22px;
+      width: max(320px, var(--canvas-wrap-width));
+      height: max(240px, var(--canvas-wrap-height));
       /* background changes by presets */
       background: var(--canvas-bg);
       min-width: 320px;
       min-height: 240px;
+      flex: 0 0 auto;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -239,8 +268,8 @@
 
     .frameImg{
       display:block;
-      max-width: min(920px, calc(100vw - 440px));
-      max-height: min(820px, calc(100vh - 180px));
+      max-width: max(1px, calc(var(--canvas-wrap-width) - 44px));
+      max-height: max(1px, calc(var(--canvas-wrap-height) - 44px));
       width: auto;
       height: auto;
       user-select:none;
@@ -599,10 +628,6 @@
         position: relative;
         height: auto;
       }
-      .frameImg{
-        max-width: min(920px, calc(100vw - 70px));
-        max-height: min(820px, calc(100vh - 220px));
-      }
     }
   </style>
 </head>
@@ -756,6 +781,25 @@
               Custom frame and screen rectangle are saved to <b>localStorage</b>.
             </p>
           </div>
+
+          <div class="divider"></div>
+
+          <div class="row one">
+            <div>
+              <label for="scaleRange">Device scale</label>
+              <input id="scaleRange" type="range" min="0.4" max="1.6" step="0.01" />
+              <div class="small"><span id="scaleLabel"></span></div>
+            </div>
+          </div>
+
+          <div class="row one">
+            <div>
+              <label for="frameSizeRange">Frame size</label>
+              <input id="frameSizeRange" type="range" min="0.6" max="2.2" step="0.01" />
+              <div class="small"><span id="frameSizeLabel"></span></div>
+              <div class="small">Enlarges the frame and screen area without visually zooming iframe content.</div>
+            </div>
+          </div>
         </div>
       </details>
 
@@ -843,14 +887,6 @@
             <div>
               <label for="bgColorPicker">Custom color</label>
               <input id="bgColorPicker" type="color" value="#0b0f17" />
-            </div>
-          </div>
-
-          <div class="row one">
-            <div>
-              <label for="scaleRange">Device scale</label>
-              <input id="scaleRange" type="range" min="0.4" max="1.6" step="0.01" />
-              <div class="small"><span id="scaleLabel"></span></div>
             </div>
           </div>
         </div>
@@ -942,6 +978,10 @@
         <div class="topActions">
           <button class="btn" id="btnCenter" type="button" title="Center the device in view">Center</button>
         </div>
+      </div>
+
+      <div class="previewOverlayActions">
+        <button class="btn" id="btnPreviewFullscreen" type="button" title="Show only the canvas in full screen for recording">Full Screen</button>
       </div>
 
       <div class="canvasWrap" id="canvasWrap">
@@ -1045,6 +1085,7 @@
       bgCustom: "#0b0f17",
 
       scale: 1,
+      frameSizeScale: 1,
 
       shadow: {
         enabled: true,
@@ -1098,6 +1139,8 @@
       bgColorPicker: document.getElementById("bgColorPicker"),
       scaleRange: document.getElementById("scaleRange"),
       scaleLabel: document.getElementById("scaleLabel"),
+      frameSizeRange: document.getElementById("frameSizeRange"),
+      frameSizeLabel: document.getElementById("frameSizeLabel"),
 
       shadowToggle: document.getElementById("shadowToggle"),
       shadowBlur: document.getElementById("shadowBlur"),
@@ -1114,6 +1157,7 @@
       btnReset: document.getElementById("btnReset"),
       btnExport: document.getElementById("btnExport"),
       btnCenter: document.getElementById("btnCenter"),
+      btnPreviewFullscreen: document.getElementById("btnPreviewFullscreen"),
 
       canvasWrap: document.getElementById("canvasWrap"),
       canvas: document.getElementById("canvas"),
@@ -1149,6 +1193,75 @@
     // Utilities
     // -------------------------
     function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    function normalizeScaleValue(value, fallback, min, max){
+      const parsed = Number.isFinite(value) ? value : parseFloat(value);
+      return clamp(Number.isFinite(parsed) ? parsed : fallback, min, max);
+    }
+
+    function getFullscreenElement(){
+      return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+    }
+
+    function isCanvasWrapFullscreen(){
+      return getFullscreenElement() === els.canvasWrap;
+    }
+
+    async function requestElementFullscreen(el){
+      if(el.requestFullscreen) return el.requestFullscreen();
+      if(el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      if(el.msRequestFullscreen) return el.msRequestFullscreen();
+      throw new Error("Fullscreen is not supported in this browser.");
+    }
+
+    async function exitCurrentFullscreen(){
+      if(document.exitFullscreen) return document.exitFullscreen();
+      if(document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if(document.msExitFullscreen) return document.msExitFullscreen();
+      throw new Error("Fullscreen is not supported in this browser.");
+    }
+
+    function updatePreviewFullscreenButton(){
+      if(!els.btnPreviewFullscreen) return;
+      const active = isCanvasWrapFullscreen();
+      els.btnPreviewFullscreen.textContent = active ? "Exit Full Screen" : "Full Screen";
+      els.btnPreviewFullscreen.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+
+    function centerCanvasWrap(behavior="smooth"){
+      const wrap = els.canvasWrap;
+      wrap.scrollTo({
+        left: (wrap.scrollWidth - wrap.clientWidth) / 2,
+        top: (wrap.scrollHeight - wrap.clientHeight) / 2,
+        behavior
+      });
+    }
+
+    async function toggleCanvasWrapFullscreen(){
+      try{
+        if(isCanvasWrapFullscreen()){
+          await exitCurrentFullscreen();
+        } else {
+          await requestElementFullscreen(els.canvasWrap);
+        }
+      }catch(err){
+        toast("Fullscreen preview is not available in this browser.", "error");
+      }
+    }
+
+    function updateCanvasWrapBounds(){
+      const wrap = els.canvasWrap;
+      if(!wrap) return;
+
+      const styles = getComputedStyle(wrap);
+      const padX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+      const padY = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+      const width = Math.max(320, Math.round(wrap.clientWidth - padX));
+      const height = Math.max(240, Math.round(wrap.clientHeight - padY));
+
+      document.documentElement.style.setProperty("--canvas-wrap-width", `${width}px`);
+      document.documentElement.style.setProperty("--canvas-wrap-height", `${height}px`);
+    }
 
     function toast(message, type="info", timeout=2600){
       const div = document.createElement("div");
@@ -1433,6 +1546,7 @@
       state.bgCustom = "#0b0f17";
 
       state.scale = 1;
+      state.frameSizeScale = 1;
 
       state.shadow = { enabled:true, blur:40, opacity:0.35, x:0, y:18, spread:0 };
 
@@ -1520,9 +1634,50 @@
     }
 
     function applyScale(){
+      state.scale = normalizeScaleValue(state.scale, 1, 0.4, 1.6);
       document.documentElement.style.setProperty("--device-scale", String(state.scale));
       els.scaleRange.value = String(state.scale);
       els.scaleLabel.textContent = `${Math.round(state.scale * 100)}%`;
+    }
+
+    // Measure the frame at its default responsive size, then scale that layout size
+    // so the screen area becomes larger without using a transform on the iframe.
+    function getBaseFrameDisplaySize(){
+      const prevWidth = els.frameImg.style.width;
+      const prevHeight = els.frameImg.style.height;
+
+      els.frameImg.style.width = "";
+      els.frameImg.style.height = "";
+
+      const width = els.frameImg.offsetWidth || els.frameImg.clientWidth || els.frameImg.naturalWidth || 1;
+      const height = els.frameImg.offsetHeight || els.frameImg.clientHeight || els.frameImg.naturalHeight || 1;
+
+      els.frameImg.style.width = prevWidth;
+      els.frameImg.style.height = prevHeight;
+
+      return { width, height };
+    }
+
+    function applyFrameSize(){
+      state.frameSizeScale = normalizeScaleValue(state.frameSizeScale, 1, 0.6, 2.2);
+      els.frameSizeRange.value = String(state.frameSizeScale);
+      els.frameSizeLabel.textContent = `${Math.round(state.frameSizeScale * 100)}%`;
+
+      if(!els.frameImg.naturalWidth || !els.frameImg.naturalHeight){
+        els.frameImg.style.width = "";
+        els.frameImg.style.height = "";
+        return;
+      }
+
+      if(Math.abs(state.frameSizeScale - 1) < 0.001){
+        els.frameImg.style.width = "";
+        els.frameImg.style.height = "";
+        return;
+      }
+
+      const base = getBaseFrameDisplaySize();
+      els.frameImg.style.width = `${Math.round(base.width * state.frameSizeScale)}px`;
+      els.frameImg.style.height = `${Math.round(base.height * state.frameSizeScale)}px`;
     }
 
     function applyFrameRotation(){
@@ -1617,6 +1772,7 @@
 
       // Set screen radius
       applyScreenRadius();
+      applyFrameSize();
       applyFrameRotation();
     }
 
@@ -1725,12 +1881,14 @@
 
 
     function renderAll(){
+      updateCanvasWrapBounds();
       renderTemplateOptions();
       renderModePills();
       renderFitPills();
       renderBgSwatches();
       applyCanvasBackground();
       applyScale();
+      applyFrameSize();
       applyShadow();
       applyFrameRotation();
       renderCustomFrameSection();
@@ -1758,10 +1916,26 @@
 
     // Reposition on resize and after image load
     function wireFrameLoad(){
-      els.frameImg.addEventListener("load", () => {
+      const syncFrameToCanvasWrap = () => {
+        updateCanvasWrapBounds();
+        if(!els.frameImg.naturalWidth || !els.frameImg.naturalHeight) return;
+        applyFrameSize();
         positionScreen();
+      };
+
+      els.frameImg.addEventListener("load", () => {
+        syncFrameToCanvasWrap();
       });
-      window.addEventListener("resize", () => positionScreen());
+      window.addEventListener("resize", () => {
+        syncFrameToCanvasWrap();
+      });
+
+      if(typeof ResizeObserver === "function"){
+        const observer = new ResizeObserver(() => {
+          syncFrameToCanvasWrap();
+        });
+        observer.observe(els.canvasWrap);
+      }
     }
 
     // -------------------------
@@ -2106,6 +2280,13 @@
         saveState();
       });
 
+      els.frameSizeRange.addEventListener("input", () => {
+        state.frameSizeScale = parseFloat(els.frameSizeRange.value);
+        applyFrameSize();
+        positionScreen();
+        saveState();
+      });
+
       // Shadow controls
       els.shadowToggle.addEventListener("change", () => {
         state.shadow.enabled = els.shadowToggle.checked;
@@ -2142,19 +2323,27 @@
       els.btnReset.addEventListener("click", resetState);
 
       els.btnCenter.addEventListener("click", () => {
-        // Scroll the canvasWrap to center (best-effort)
-        const wrap = els.canvasWrap;
-        wrap.scrollTo({
-          left: (wrap.scrollWidth - wrap.clientWidth) / 2,
-          top: (wrap.scrollHeight - wrap.clientHeight) / 2,
-          behavior: "smooth"
-        });
+        centerCanvasWrap("smooth");
       });
+
+      els.btnPreviewFullscreen.addEventListener("click", () => {
+        toggleCanvasWrapFullscreen();
+      });
+
+      const handleFullscreenChange = () => {
+        updatePreviewFullscreenButton();
+        requestAnimationFrame(() => {
+          centerCanvasWrap("auto");
+        });
+      };
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.addEventListener("msfullscreenchange", handleFullscreenChange);
 
       document.addEventListener("keydown", (e) => {
         const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
         const typing = tag === "input" || tag === "textarea" || tag === "select";
-        if(e.key === "Escape" && state.manualAdjustActive){
+        if(e.key === "Escape" && state.manualAdjustActive && !isCanvasWrapFullscreen()){
           deactivateManualAdjust();
           e.preventDefault();
           return;
@@ -2579,12 +2768,15 @@
       syncTemplateScreenDefaults();
 
       // Seed UI defaults (ranges etc.) from state
+      updateCanvasWrapBounds();
       els.scaleRange.value = String(state.scale);
+      els.frameSizeRange.value = String(state.frameSizeScale);
       els.shadowToggle.checked = !!state.shadow.enabled;
 
       renderAll();
       wireEvents();
       wireFrameLoad();
+      updatePreviewFullscreenButton();
 
       // Start centered
       requestAnimationFrame(() => {
